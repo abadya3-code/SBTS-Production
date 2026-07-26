@@ -82,10 +82,15 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error(
-    "ADMIN_BOOTSTRAP_FAILED:",
-    error instanceof Error ? error.message : error,
-  );
-  process.exit(1);
-});
+main()
+  .then(() => {
+    console.log("ADMIN_BOOTSTRAP_PROCESS_COMPLETED");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error(
+      "ADMIN_BOOTSTRAP_PROCESS_FAILED",
+      error instanceof Error ? error.message : error,
+    );
+    process.exit(1);
+  });
