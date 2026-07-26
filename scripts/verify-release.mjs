@@ -58,24 +58,11 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), 
 if (packageJson.scripts?.["db:migrate"] !== "pnpm db:migrate:drizzle && pnpm db:migrate:domain") {
   failures.push("db:migrate must execute both Drizzle and SBTS domain migrations.");
 }
-const railwayPredeploy = packageJson.scripts?.["railway:predeploy"] ?? "";
-
-if (!railwayPredeploy.includes("pnpm deploy:check")) {
-  failures.push(
-    "railway:predeploy must validate deployment variables before migrations.",
-  );
+if (!packageJson.scripts?.["railway:predeploy"]?.includes("pnpm deploy:check")) {
+  failures.push("railway:predeploy must validate deployment variables before migrations.");
 }
-
-if (!railwayPredeploy.includes("pnpm db:migrate")) {
-  failures.push(
-    "railway:predeploy must apply database migrations.",
-  );
-}
-
-if (!railwayPredeploy.includes("pnpm admin:create")) {
-  failures.push(
-    "railway:predeploy must support the controlled admin bootstrap.",
-  );
+if (!packageJson.scripts?.["railway:predeploy"]?.includes("pnpm doctor")) {
+  failures.push("railway:predeploy must run the production readiness doctor.");
 }
 if (!packageJson.engines?.node?.includes("22")) {
   failures.push("Node.js 22 must be pinned in package.json engines.");

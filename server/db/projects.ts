@@ -17,7 +17,7 @@ import {
 } from "./types";
 import {
   blindPhaseOrder, defaultPhaseColors, defaultPhaseOwners,
-  sanitizePhaseColor, seedAreasAndProjects, seedWorkflows, serializePhaseAssignees,
+  sanitizePhaseColor, seedWorkflows, serializePhaseAssignees,
 } from "./seed";
 import { normalizeBlindRows, canActingUserEditAssignedPhase } from "./blinds";
 import type { ActingProjectUser } from "./types";
@@ -171,7 +171,6 @@ function summarizeProjectBlinds(
 // ─── Area Queries ──────────────────────────────────────────────────────────
 
 export async function getAreas(): Promise<AreaModel[]> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const [areaRows, projectRows] = await Promise.all([
     db.select().from(areas).orderBy(asc(areas.name)),
@@ -181,7 +180,6 @@ export async function getAreas(): Promise<AreaModel[]> {
 }
 
 export async function getAreaById(id: number): Promise<AreaModel | undefined> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const areaRows = await db.select().from(areas).where(eq(areas.id, id)).limit(1);
   if (!areaRows[0]) return undefined;
@@ -190,7 +188,6 @@ export async function getAreaById(id: number): Promise<AreaModel | undefined> {
 }
 
 export async function createArea(input: AreaInput): Promise<AreaModel> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   await db.insert(areas).values({
     name: input.name,
@@ -207,7 +204,6 @@ export async function createArea(input: AreaInput): Promise<AreaModel> {
 // ─── Project Queries ───────────────────────────────────────────────────────
 
 export async function getAllProjects(): Promise<ProjectModel[]> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const [projectRows, areaRows] = await Promise.all([
     db.select().from(projects).orderBy(asc(projects.name)),
@@ -217,7 +213,6 @@ export async function getAllProjects(): Promise<ProjectModel[]> {
 }
 
 export async function getProjectsByArea(areaId: number): Promise<ProjectModel[]> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const [projectRows, areaRows] = await Promise.all([
     db.select().from(projects).where(eq(projects.areaId, areaId)).orderBy(asc(projects.name)),
@@ -227,7 +222,6 @@ export async function getProjectsByArea(areaId: number): Promise<ProjectModel[]>
 }
 
 export async function createProject(input: ProjectInput): Promise<ProjectModel> {
-  await seedAreasAndProjects();
   await seedWorkflows();
   const db = await requireDb();
   const targetArea = await getAreaById(input.areaId);
@@ -258,7 +252,6 @@ export async function createProject(input: ProjectInput): Promise<ProjectModel> 
 }
 
 export async function getProjectDetail(projectId: string): Promise<ProjectDetailModel | undefined> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const projectRows = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!projectRows[0]) return undefined;
@@ -293,7 +286,6 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 }
 
 export async function getProjectSettings(projectId: string): Promise<ProjectSettingsModel | undefined> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const projectRows = await db.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!projectRows[0]) return undefined;
@@ -322,7 +314,6 @@ export async function updateProjectSettings(
   userOpenId?: string,
   slipBlindGateRequired = true,
 ): Promise<ProjectSettingsModel> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const projectRows = await db.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!projectRows[0]) throw new Error(`Cannot update settings for unknown projectId: ${projectId}`);

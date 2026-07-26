@@ -11,6 +11,10 @@ const requiredTables = [
   "workflow_templates",
   "blind_workflow_runtime",
   "certificate_records",
+  "areas",
+  "projects",
+  "blinds",
+  "feature_toggles",
   "sbts_domain_migrations",
 ];
 
@@ -45,10 +49,26 @@ async function main() {
 
     const [migrationRows] = await connection.execute<mysql.RowDataPacket[]>(
       "SELECT migrationName FROM sbts_domain_migrations WHERE migrationName = ? LIMIT 1",
-      ["0017_sprint5_auth_deployment_hardening.sql"],
+      ["0018_sprint6_schema_alignment.sql"],
     );
     if (!migrationRows.length) {
-      throw new Error("Sprint 5 authentication migration 0017 is not recorded as applied.");
+      throw new Error("Schema-alignment migration 0018 is not recorded as applied.");
+    }
+
+    const requiredBlindColumns = [
+      "material", "flangeType", "gasketType", "boltSize", "torqueValue", "thickness",
+      "tempRating", "pidRef", "isoDrawing", "lineNumber2", "installDate", "expiryDate",
+    ];
+    const [blindColumnRows] = await connection.query<mysql.RowDataPacket[]>(
+      `SELECT column_name AS columnName
+         FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'blinds'`,
+    );
+    const blindColumns = new Set(blindColumnRows.map((row) => String(row.columnName)));
+    const missingBlindColumns = requiredBlindColumns.filter((column) => !blindColumns.has(column));
+    if (missingBlindColumns.length) {
+      throw new Error(`blinds is missing required columns: ${missingBlindColumns.join(", ")}`);
     }
 
     const bootstrapEnabled = bool(process.env.BOOTSTRAP_ADMIN_ON_DEPLOY);

@@ -239,16 +239,18 @@ export function serializePhaseAssignees(owners: { openId: string; name: string; 
 
 export async function seedAreasAndProjects(): Promise<void> {
   const db = await requireDb();
+  const now = new Date();
   const existingAreas = await db.select({ id: areas.id }).from(areas).limit(1);
   if (existingAreas.length === 0) {
-    await db.transaction(async (tx) => {
-      const now = new Date();
-      await tx.insert(areas).values(seedAreas.map((area) => ({ ...area, createdAt: now, updatedAt: now })));
-      await tx.insert(projects).values(seedProjects.map((project) => ({ ...project, createdAt: now, updatedAt: now })));
-    });
+    await db.insert(areas).values(seedAreas.map((area) => ({ ...area, createdAt: now, updatedAt: now })));
   }
+
+  const existingProjects = await db.select({ id: projects.id }).from(projects).limit(1);
+  if (existingProjects.length === 0) {
+    await db.insert(projects).values(seedProjects.map((project) => ({ ...project, createdAt: now, updatedAt: now })));
+  }
+
   const existingBlinds = await db.select({ tag: blinds.tag }).from(blinds).limit(1);
-  const now = new Date();
   if (existingBlinds.length === 0) {
     await db.insert(blinds).values(seedBlinds.map((blind) => ({ ...blind, createdAt: now, updatedAt: now })));
   }

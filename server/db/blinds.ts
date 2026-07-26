@@ -16,7 +16,7 @@ import {
   BlindPhaseApprovalInput, BlindPhaseApprovalModel, BlindPhaseDetailModel,
   BlindPriority, BlindUpdateInput, BlindWorkflowLogModel, ProjectPhaseOwnerModel,
 } from "./types";
-import { blindPhaseOrder, defaultPhaseColors, seedAreasAndProjects } from "./seed";
+import { blindPhaseOrder, defaultPhaseColors } from "./seed";
 
 // ─── Normalize Helpers ─────────────────────────────────────────────────────
 
@@ -208,7 +208,6 @@ export async function addBlindToProject(
   input: BlindInput,
   actor?: ActingProjectUser,
 ): Promise<BlindModel> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const projectRows = await db.select({ id: projects.id }).from(projects).where(eq(projects.id, input.projectId)).limit(1);
   if (!projectRows[0]) throw new Error(`Cannot add blind for unknown projectId: ${input.projectId}`);
@@ -235,7 +234,6 @@ export async function bulkAddBlindsToProject(
   projectId: string,
   inputs: Omit<BlindInput, "projectId">[],
 ): Promise<{ created: BlindModel[]; count: number }> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const projectRows = await db.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!projectRows[0]) throw new Error(`Cannot add blinds for unknown projectId: ${projectId}`);
@@ -281,7 +279,6 @@ export async function updateBlindInProject(
   input: BlindUpdateInput,
   actor?: ActingProjectUser,
 ): Promise<BlindModel> {
-  await seedAreasAndProjects();
   const db = await requireDb();
   const existingRows = await db.select().from(blinds).where(eq(blinds.tag, input.tag)).limit(1);
   const existing = existingRows[0];
@@ -365,7 +362,6 @@ export async function setBlindPhaseApproval(
   input: BlindPhaseApprovalInput,
   actor: ActingProjectUser,
 ): Promise<BlindDetailModel> {
-  await seedAreasAndProjects();
   const { getProjectDetail } = await import("./projects");
   const detail = await getProjectDetail(input.projectId);
   const blind = detail?.blinds.find((item) => item.tag === input.tag);
