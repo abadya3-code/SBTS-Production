@@ -1,0 +1,282 @@
+/**
+ * SBTS Themes CSS
+ * تطبيق الثيمات الثلاث على التطبيق
+ */
+
+/* ============================================
+   SAP Clean Theme
+   ============================================ */
+:root.theme-sap-clean {
+  --primary: #003366;
+  --primary-light: #0066CC;
+  --primary-dark: #001F3F;
+  --secondary: #00A0DF;
+  --secondary-light: #33B5E5;
+  --secondary-dark: #0078B8;
+  --accent: #F0AD4E;
+  --accent-light: #F5C26B;
+  --accent-dark: #E89B2C;
+  --background: #F5F5F5;
+  --surface: #FFFFFF;
+  --border: #CCCCCC;
+  --text: #333333;
+  --text-light: #666666;
+  --text-lighter: #999999;
+  --success: #5CB85C;
+  --warning: #F0AD4E;
+  --error: #D9534F;
+  --info: #5BC0DE;
+
+  /* Tailwind overrides */
+  --color-primary: #003366;
+  --color-secondary: #00A0DF;
+  --color-accent: #F0AD4E;
+  --color-background: #F5F5F5;
+  --color-surface: #FFFFFF;
+  --color-text: #333333;
+  --color-success: #5CB85C;
+  --color-error: #D9534F;
+  --color-warning: #F0AD4E;
+
+  color-scheme: light;
+}
+
+/* ============================================
+   SBTS Custom Theme (Default)
+   ============================================ */
+:root.theme-sbts-custom {
+  --primary: #0891B2;
+  --primary-light: #06B6D4;
+  --primary-dark: #0E7490;
+  --secondary: #06B6D4;
+  --secondary-light: #22D3EE;
+  --secondary-dark: #0891B2;
+  --accent: #EC4899;
+  --accent-light: #F472B6;
+  --accent-dark: #DB2777;
+  --background: #F8FAFC;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  --text: #1E293B;
+  --text-light: #475569;
+  --text-lighter: #94A3B8;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #3B82F6;
+
+  /* Tailwind overrides */
+  --color-primary: #0891B2;
+  --color-secondary: #06B6D4;
+  --color-accent: #EC4899;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-text: #1E293B;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+
+  color-scheme: light;
+}
+
+/* ============================================
+   Modern Theme (Dark Mode)
+   ============================================ */
+:root.theme-modern {
+  --primary: #7C3AED;
+  --primary-light: #A78BFA;
+  --primary-dark: #6D28D9;
+  --secondary: #A78BFA;
+  --secondary-light: #C4B5FD;
+  --secondary-dark: #7C3AED;
+  --accent: #06B6D4;
+  --accent-light: #22D3EE;
+  --accent-dark: #0891B2;
+  --background: #0F172A;
+  --surface: #1E293B;
+  --border: #334155;
+  --text: #F1F5F9;
+  --text-light: #CBD5E1;
+  --text-lighter: #94A3B8;
+  --success: #34D399;
+  --warning: #FBBF24;
+  --error: #F87171;
+  --info: #60A5FA;
+
+  /* Tailwind overrides */
+  --color-primary: #7C3AED;
+  --color-secondary: #A78BFA;
+  --color-accent: #06B6D4;
+  --color-background: #0F172A;
+  --color-surface: #1E293B;
+  --color-text: #F1F5F9;
+  --color-success: #34D399;
+  --color-error: #F87171;
+  --color-warning: #FBBF24;
+
+  color-scheme: dark;
+}
+
+/* ============================================
+   Dark Mode Adjustments
+   ============================================ */
+:root.dark {
+  color-scheme: dark;
+}
+
+:root.theme-sap-clean.dark {
+  --background: #1A1A1A;
+  --surface: #2D2D2D;
+  --border: #404040;
+  --text: #E8E8E8;
+  --text-light: #B0B0B0;
+  --text-lighter: #808080;
+}
+
+:root.theme-sbts-custom.dark {
+  --background: #0F172A;
+  --surface: #1E293B;
+  --border: #334155;
+  --text: #F1F5F9;
+  --text-light: #CBD5E1;
+  --text-lighter: #94A3B8;
+}
+
+/* ============================================
+   Global Styles with Theme Variables
+   ============================================ */
+body {
+  background-color: var(--background);
+  color: var(--text);
+  transition: background-color 300ms ease-in-out, color 300ms ease-in-out;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: var(--secondary);
+  color: white;
+  border-color: var(--secondary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-dark);
+  border-color: var(--secondary-dark);
+}
+
+/* Accent Button */
+.btn-accent {
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.btn-accent:hover {
+  background-color: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+/* Cards and Surfaces */
+.card,
+[role='dialog'],
+[role='menu'] {
+  background-color: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Inputs */
+input,
+textarea,
+select {
+  background-color: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-lighter);
+}
+
+/* Links */
+a {
+  color: var(--primary);
+}
+
+a:hover {
+  color: var(--primary-dark);
+}
+
+/* Borders */
+hr,
+[role='separator'] {
+  border-color: var(--border);
+}
+
+/* Success, Warning, Error */
+.text-success {
+  color: var(--success);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+.text-error {
+  color: var(--error);
+}
+
+.bg-success {
+  background-color: var(--success);
+}
+
+.bg-warning {
+  background-color: var(--warning);
+}
+
+.bg-error {
+  background-color: var(--error);
+}
+
+/* ============================================
+   Smooth Transitions
+   ============================================ */
+* {
+  transition-property: background-color, border-color, color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Disable transitions for specific elements */
+.no-transition {
+  transition: none;
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  :root {
+    --border: var(--text);
+  }
+}

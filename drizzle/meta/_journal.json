@@ -1,0 +1,97 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1777928163269,
+      "tag": "0000_romantic_jack_murdock",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1777928433055,
+      "tag": "0001_gifted_mach_iv",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1777929170605,
+      "tag": "0002_chilly_snowbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1778001538729,
+      "tag": "0003_silly_vengeance",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1778002780100,
+      "tag": "0004_flippant_franklin_richards",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1778005182824,
+      "tag": "0005_stormy_ma_gnuci",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1778008203633,
+      "tag": "0006_good_sugar_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1778076529570,
+      "tag": "0007_fair_gorilla_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1778096880555,
+      "tag": "0008_oval_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1783098011572,
+      "tag": "0009_typical_random",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1783101980290,
+      "tag": "0010_mushy_wrecking_crew",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1783108879611,
+      "tag": "0011_modern_microchip",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1783122865238,
+      "tag": "0012_fancy_blockbuster",
+      "breakpoints": true
+    }
+  ]
+}

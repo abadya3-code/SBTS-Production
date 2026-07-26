@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
+*.log
+*.zip
+*.tgz
+.vscode
+.idea
+.webdev
+client/public/__manus__
