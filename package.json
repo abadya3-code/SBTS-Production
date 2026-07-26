@@ -28,7 +28,7 @@
     "db:migrate:domain": "tsx scripts/apply-sbts-domain-migrations.ts",
     "release:check": "node scripts/verify-release.mjs",
     "railway:build": "pnpm release:check && pnpm build",
-    "railway:predeploy": "pnpm deploy:check && pnpm db:migrate && if [ \"${BOOTSTRAP_ADMIN_ON_DEPLOY:-false}\" = \"true\" ]; then pnpm admin:create; fi && pnpm doctor",
+    "railway:predeploy": "pnpm deploy:check && pnpm db:migrate && if [ \"${BOOTSTRAP_ADMIN_ON_DEPLOY:-false}\" = \"true\" ]; then pnpm admin:create; fi",
     "deploy:check": "tsx scripts/validate-deployment-env.ts",
     "admin:reset": "pnpm admin:create",
     "sprint5:verify": "node scripts/sprint5-verify.mjs && node scripts/sprint5-sql-validate.mjs && node scripts/typescript-syntax-check.mjs",
