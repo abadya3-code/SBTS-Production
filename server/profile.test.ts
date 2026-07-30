@@ -95,10 +95,10 @@ describe("getUserProfile", () => {
     expect(profile?.preferredTheme).toBe("dark");
   });
 
-  it("defaults preferredTheme to dark when null", async () => {
+  it("defaults preferredTheme to standard when null", async () => {
     vi.mocked(requireDb).mockResolvedValue(makeDb([{ ...mockUser, preferredTheme: null }]) as any);
     const profile = await getUserProfile("test-open-id");
-    expect(profile?.preferredTheme).toBe("dark");
+    expect(profile?.preferredTheme).toBe("standard");
   });
 });
 
