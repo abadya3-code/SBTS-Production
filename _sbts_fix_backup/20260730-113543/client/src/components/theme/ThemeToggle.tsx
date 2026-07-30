@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Palette, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { trpc } from "@/lib/trpc";
 
 interface ThemeToggleProps {
   className?: string;
@@ -21,17 +20,6 @@ interface ThemeToggleProps {
  */
 export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = "" }) => {
   const { themeId, setTheme } = useTheme();
-  const utils = trpc.useUtils();
-  const updateTheme = trpc.profile.updateTheme.useMutation({
-    onSuccess: async () => {
-      await utils.profile.get.invalidate();
-    },
-  });
-
-  const selectTheme = (id: ThemeId) => {
-    setTheme(id);
-    updateTheme.mutate({ theme: id });
-  };
 
   return (
     <DropdownMenu>
@@ -60,7 +48,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = "" }) => {
             return (
               <button
                 key={t.id}
-                onClick={() => selectTheme(t.id as ThemeId)}
+                onClick={() => setTheme(t.id as ThemeId)}
                 className={cn(
                   "group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-all",
                   active

@@ -78,16 +78,8 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const THEME_STORAGE_KEY = "sbts-theme-v2";
+const STORAGE_KEY = "sbts-theme-v2";
 const DEFAULT_THEME: ThemeId = "standard";
-
-export function normalizeThemeId(value: string | null | undefined): ThemeId | null {
-  if (!value) return null;
-  if (value === "standard" || value === "light" || value === "system") return "standard";
-  if (value === "modern" || value === "dark" || value === "sbts-custom") return "modern";
-  if (value === "manus") return "manus";
-  return null;
-}
 
 /* ── Provider ─────────────────────────────────────────────────────────────── */
 
@@ -95,8 +87,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: appearance } = trpc.settings.appearance.get.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
   const [themeId, setThemeId] = useState<ThemeId>(() => {
     try {
-      const saved = normalizeThemeId(localStorage.getItem(THEME_STORAGE_KEY));
-      if (saved) return saved;
+      const saved = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
+      if (saved && THEMES.find((t) => t.id === saved)) return saved;
     } catch {}
     return DEFAULT_THEME;
   });
@@ -106,10 +98,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!appearance) return;
     let saved: ThemeId | null = null;
-    try { saved = normalizeThemeId(localStorage.getItem(THEME_STORAGE_KEY)); } catch {}
-    const systemTheme = normalizeThemeId(appearance.defaultTheme) ?? DEFAULT_THEME;
-    if (!appearance.allowUserThemeOverride || !saved) {
-      setThemeId(systemTheme);
+    try { saved = localStorage.getItem(STORAGE_KEY) as ThemeId | null; } catch {}
+    if (!appearance.allowUserThemeOverride || !saved || !THEMES.some((theme) => theme.id === saved)) {
+      setThemeId(appearance.defaultTheme);
     }
   }, [appearance]);
 
@@ -135,7 +126,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (!allowUserThemeOverride && appearance) return;
       setThemeId(id);
       try {
-        localStorage.setItem(THEME_STORAGE_KEY, id);
+        localStorage.setItem(STORAGE_KEY, id);
       } catch {}
       applyTheme(id);
     },

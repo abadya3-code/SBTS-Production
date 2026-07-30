@@ -59,7 +59,7 @@ export type CanonicalWorkflowPhase = {
   actionLabel: string;
 };
 
-export const canonicalWorkflowPhases = [
+export const canonicalWorkflowPhases: readonly CanonicalWorkflowPhase[] = [
   {
     key: "operationsInitialIsolation",
     label: "Operations Initial Isolation",
@@ -268,7 +268,7 @@ export const canonicalWorkflowPhases = [
     actionKey: "authorizeReturnToService",
     actionLabel: "Authorize Return to Service",
   },
-] as const satisfies readonly CanonicalWorkflowPhase[];
+] as const;
 
 export const vesselEntryReadinessGate = {
   key: "vesselEntryReadiness",

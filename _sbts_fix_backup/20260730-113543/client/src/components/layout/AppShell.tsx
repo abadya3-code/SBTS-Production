@@ -23,7 +23,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { THEME_STORAGE_KEY, normalizeThemeId, useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -38,17 +38,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
   });
 
-  // Hydrate a new browser from the server profile, but never overwrite a
-  // valid preference already saved in this browser.
+  // Apply the user's saved theme preference once loaded
   useEffect(() => {
     if (!profileData?.preferredTheme) return;
-    try {
-      if (normalizeThemeId(localStorage.getItem(THEME_STORAGE_KEY))) return;
-    } catch {
-      // Storage may be unavailable in hardened/private browser contexts.
+    const pref = profileData.preferredTheme as string;
+    if (pref === "dark" || pref === "modern" || pref === "sbts-custom") {
+      setTheme("modern");
+    } else if (pref === "manus") {
+      setTheme("manus");
+    } else {
+      setTheme("standard");
     }
-    const preferredTheme = normalizeThemeId(profileData.preferredTheme);
-    if (preferredTheme) setTheme(preferredTheme);
   }, [profileData?.preferredTheme, setTheme]);
 
   // Load dynamic settings

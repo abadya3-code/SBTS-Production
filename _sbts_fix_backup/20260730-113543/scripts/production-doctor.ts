@@ -61,22 +61,12 @@ async function main() {
       throw new Error(`Database is missing required tables: ${missing.join(", ")}`);
     }
 
-    const requiredMigrations = [
-      "0018_sprint6_schema_alignment.sql",
-      "0019_sprint4_foundation_stabilization.sql",
-    ];
-    const [migrationRows] = await connection.query<mysql.RowDataPacket[]>(
-      "SELECT migrationName FROM sbts_domain_migrations WHERE migrationName IN (?, ?)",
-      requiredMigrations,
+    const [migrationRows] = await connection.execute<mysql.RowDataPacket[]>(
+      "SELECT migrationName FROM sbts_domain_migrations WHERE migrationName = ? LIMIT 1",
+      ["0018_sprint6_schema_alignment.sql"],
     );
-    const appliedMigrations = new Set(
-      migrationRows.map((row) => String(row.migrationName)),
-    );
-    const missingMigrations = requiredMigrations.filter(
-      (migration) => !appliedMigrations.has(migration),
-    );
-    if (missingMigrations.length) {
-      throw new Error(`Required migrations are not recorded: ${missingMigrations.join(", ")}`);
+    if (!migrationRows.length) {
+      throw new Error("Schema-alignment migration 0018 is not recorded as applied.");
     }
 
     const requiredBlindColumns = [
@@ -93,17 +83,6 @@ async function main() {
     const missingBlindColumns = requiredBlindColumns.filter((column) => !blindColumns.has(column));
     if (missingBlindColumns.length) {
       throw new Error(`blinds is missing required columns: ${missingBlindColumns.join(", ")}`);
-    }
-
-    const invalidThemeCount = await scalarCount(
-      connection,
-      `SELECT COUNT(*) AS rowCount
-         FROM users
-        WHERE preferredTheme IS NULL
-           OR preferredTheme NOT IN ('standard', 'modern', 'manus')`,
-    );
-    if (invalidThemeCount > 0) {
-      throw new Error(`${invalidThemeCount} user theme preference(s) are invalid.`);
     }
 
     const permissionCount = await scalarCount(
@@ -231,7 +210,7 @@ async function main() {
     console.log(JSON.stringify({
       status: "passed",
       database: "connected",
-      migrations: requiredMigrations,
+      migrations: "current",
       schemaAlignment: true,
       systemReferenceData: true,
       orphanProjects: orphanProjectCount,

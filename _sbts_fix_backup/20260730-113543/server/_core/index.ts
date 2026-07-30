@@ -13,7 +13,7 @@ import { getStorageBackend } from "../storage";
 import { getDatabaseUrl } from "./databaseUrl";
 import { ENV } from "./env";
 
-const APP_VERSION = process.env.APP_VERSION?.trim() || "2.2.1";
+const APP_VERSION = process.env.APP_VERSION?.trim() || "2.2.0";
 
 function validateEnvironment() {
   getDatabaseUrl(process.env.DATABASE_URL, {

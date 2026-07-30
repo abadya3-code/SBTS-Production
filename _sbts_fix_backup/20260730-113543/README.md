@@ -1,4 +1,4 @@
-# SBTS 2.2.1 — Foundation Stabilized Release
+# SBTS 2.2 — Foundation Clean Release
 
 SBTS is a full-stack isolation assurance application for plant blinding and de-blinding work. This release focuses on the production foundation required before continuing feature sprints: schema alignment, deterministic migrations, database-backed Area/Project creation, explicit system seeding, workflow-runtime backfill, authenticated sessions, CI, and Railway deployment safety.
 

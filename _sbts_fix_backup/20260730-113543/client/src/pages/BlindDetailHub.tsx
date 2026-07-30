@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { canonicalWorkflowPhases, type CanonicalPhaseKey } from "../../../shared/workflowSpecification";
+import type { WorkflowActionKey } from "../../../shared/workflowRuntime";
 import { WorkflowOperationsPanel } from "@/components/workflow/WorkflowOperationsPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -391,15 +392,7 @@ export default function BlindDetailHub() {
               isLoading={runtimeQuery.isLoading}
               policy={policyQuery.data}
               onChecklistChange={(phaseKey, itemKey, completed) => checklistMutation.mutate({ projectId, blindTag: tag, phaseKey, itemKey, completed })}
-              onAdvance={() => {
-                if (!runtime) return;
-                transitionMutation.mutate({
-                  projectId,
-                  blindTag: tag,
-                  actionKey: runtime.currentPhase.actionKey,
-                  expectedRecordVersion: runtime.runtime.recordVersion,
-                });
-              }}
+              onAdvance={() => { if (!runtime) return; transitionMutation.mutate({ projectId, blindTag: tag, actionKey: runtime.currentPhase.actionKey as WorkflowActionKey, expectedRecordVersion: runtime.runtime.recordVersion }); }}
               onPlaceHold={() => {
                 const description = window.prompt("Describe the unsafe condition requiring Stop Work / Safety Hold:");
                 if (description?.trim()) holdMutation.mutate({ projectId, blindTag: tag, reasonCode: "FIELD_STOP_WORK", description: description.trim() });

@@ -17,7 +17,6 @@ const required = [
   "drizzle/schema.ts",
   "drizzle/0017_sprint5_auth_deployment_hardening.sql",
   "drizzle/0018_sprint6_schema_alignment.sql",
-  "drizzle/0019_sprint4_foundation_stabilization.sql",
   "scripts/apply-sbts-domain-migrations.ts",
   "scripts/seed-system-data.ts",
   "scripts/backfill-workflow-runtime.ts",
@@ -28,7 +27,6 @@ const required = [
   "server/foundation.contract.test.ts",
   "SBTS_2.2_FOUNDATION_RELEASE_AR.md",
   "SBTS_2.2_FOUNDATION_VERIFICATION.txt",
-  "SBTS_2.2.1_STABILIZATION_REPORT_AR.md",
   "patches/wouter@3.7.1.patch",
 ];
 
@@ -130,36 +128,6 @@ if (!fs.existsSync(path.join(root, "client/src/components/areas/CreateAreaDialog
 }
 if (!fs.existsSync(path.join(root, "client/src/components/projects/CreateProjectDialog.tsx"))) {
   failures.push("CreateProjectDialog is required.");
-}
-
-const workflowSpecification = fs.readFileSync(
-  path.join(root, "shared/workflowSpecification.ts"),
-  "utf8",
-);
-const blindDetailHub = fs.readFileSync(
-  path.join(root, "client/src/pages/BlindDetailHub.tsx"),
-  "utf8",
-);
-if (!workflowSpecification.includes("as const satisfies readonly CanonicalWorkflowPhase[]")) {
-  failures.push("Canonical workflow phases must retain literal action-key types.");
-}
-if (blindDetailHub.includes("as WorkflowActionKey")) {
-  failures.push("BlindDetailHub still contains the stale WorkflowActionKey cast.");
-}
-
-const themeContext = fs.readFileSync(
-  path.join(root, "client/src/contexts/ThemeContext.tsx"),
-  "utf8",
-);
-const themeToggle = fs.readFileSync(
-  path.join(root, "client/src/components/theme/ThemeToggle.tsx"),
-  "utf8",
-);
-if (!themeContext.includes('THEME_STORAGE_KEY = "sbts-theme-v2"')) {
-  failures.push("Theme storage contract is missing.");
-}
-if (!themeToggle.includes("trpc.profile.updateTheme.useMutation")) {
-  failures.push("Quick theme changes must persist to the authenticated profile.");
 }
 
 

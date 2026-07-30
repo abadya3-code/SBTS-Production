@@ -37,7 +37,7 @@ export const users = mysqlTable("users", {
   phone: varchar("phone", { length: 40 }),
   userLocation: varchar("userLocation", { length: 200 }),
   linkedIn: varchar("linkedIn", { length: 255 }),
-  preferredTheme: varchar("preferredTheme", { length: 20 }).default("standard"),
+  preferredTheme: varchar("preferredTheme", { length: 20 }).default("dark"),
   avatarKey: text("avatarKey"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

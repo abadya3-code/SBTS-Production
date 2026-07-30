@@ -71,7 +71,7 @@ export async function getUserProfile(openId: string): Promise<UserProfile | null
     phone: (u as any).phone ?? null,
     userLocation: (u as any).userLocation ?? null,
     linkedIn: (u as any).linkedIn ?? null,
-    preferredTheme: (u as any).preferredTheme ?? "standard",
+    preferredTheme: (u as any).preferredTheme ?? "dark",
     createdAt: u.createdAt,
     lastSignedIn: u.lastSignedIn,
   };

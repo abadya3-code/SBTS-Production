@@ -16,8 +16,6 @@ RUN pnpm install --frozen-lockfile --prod=false
 
 COPY . .
 RUN pnpm release:check \
-  && pnpm check \
-  && pnpm test \
   && pnpm build
 
 ENV NODE_ENV=production \

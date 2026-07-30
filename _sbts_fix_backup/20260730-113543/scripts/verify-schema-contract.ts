@@ -21,7 +21,7 @@ const requiredColumns: Record<string, string[]> = {
   ],
   users: [
     "id", "openId", "name", "email", "loginMethod", "role", "userStatus",
-    "passwordHash", "failedLoginAttempts", "lockedUntil", "preferredTheme", "createdAt", "updatedAt",
+    "passwordHash", "failedLoginAttempts", "lockedUntil", "createdAt", "updatedAt",
   ],
   feature_toggles: [
     "id",
@@ -68,23 +68,15 @@ async function main() {
       if (missing.length) failures.push(`${tableName} missing columns: ${missing.join(", ")}`);
     }
 
-    const requiredMigrations = [
-      "0018_sprint6_schema_alignment.sql",
-      "0019_sprint4_foundation_stabilization.sql",
-    ];
-    const [migrationRows] = await connection.query<mysql.RowDataPacket[]>(
+    const [migrationRows] = await connection.execute<mysql.RowDataPacket[]>(
       `SELECT migrationName
          FROM sbts_domain_migrations
-        WHERE migrationName IN (?, ?)`,
-      requiredMigrations,
+        WHERE migrationName = ?
+        LIMIT 1`,
+      ["0018_sprint6_schema_alignment.sql"],
     );
-    const appliedMigrations = new Set(
-      migrationRows.map((row) => String(row.migrationName)),
-    );
-    for (const migration of requiredMigrations) {
-      if (!appliedMigrations.has(migration)) {
-        failures.push(`Migration ${migration} is not recorded.`);
-      }
+    if (!migrationRows.length) {
+      failures.push("Migration 0018_sprint6_schema_alignment.sql is not recorded.");
     }
 
     const [emailIndexRows] = await connection.query<mysql.RowDataPacket[]>(
@@ -108,7 +100,7 @@ async function main() {
           status: "ok",
           database: "schema-contract-aligned",
           tablesChecked: Object.keys(requiredColumns).length,
-          migrations: requiredMigrations,
+          migration0018: "applied",
         },
         null,
         2,

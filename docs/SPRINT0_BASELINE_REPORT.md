@@ -1,27 +1,27 @@
 # Sprint 0 Baseline Report
 
-Generated: 2026-07-30T07:32:38.474Z
+Generated: 2026-07-30T08:41:39.674Z
 
 ## Application inventory
 
-- Package: sbts-professional 2.2.0
-- Source files: 270
-- Client pages: 23
+- Package: sbts-professional 2.2.1
+- Source files: 283
+- Client pages: 24
 - Server routers: 16
-- Automated tests: 29
-- SQL migrations: 19
+- Automated tests: 30
+- SQL migrations: 20
 
 ## Baseline findings
 
 ### Legacy phase references
 
-- Count: 270
+- Count: 290
 - Example files: `client\src\components\blinds\BlindDetailSheet.tsx`, `client\src\components\dashboard\BlindsRegistry.tsx`, `client\src\components\dashboard\MetricsCards.tsx`, `client\src\components\profile\ActivityTimeline.tsx`, `client\src\lib\mockData.ts`, `client\src\pages\BlindDetail.tsx`, `client\src\pages\BlindDetailHub.tsx`, `client\src\pages\ProjectDetail.tsx`
 
 ### Mock-data imports
 
-- Count: 5
-- Example files: `client\src\components\access-control\PermissionMatrix.tsx`, `client\src\components\layout\AppShell.tsx`, `client\src\pages\AccessControl.tsx`, `client\src\pages\Dashboard.tsx`, `client\src\pages\WorkflowStudio.tsx`
+- Count: 6
+- Example files: `client\src\components\access-control\PermissionMatrix.tsx`, `client\src\components\layout\AppShell.tsx`, `client\src\pages\AccessControl.tsx`, `client\src\pages\Dashboard.tsx`, `client\src\pages\WorkflowStudio.tsx`, `_sbts_fix_backup\20260730-113543\client\src\components\layout\AppShell.tsx`
 
 ### TODO/FIXME markers
 
@@ -30,7 +30,7 @@ Generated: 2026-07-30T07:32:38.474Z
 
 ### Potential placeholder actions
 
-- Count: 116
+- Count: 118
 - Example files: `client\src\components\access-control\PermissionMatrix.tsx`, `client\src\components\AIChatBox.tsx`, `client\src\components\areas\CreateAreaDialog.tsx`, `client\src\components\blinds\SurveyDialog.tsx`, `client\src\components\dashboard\BlindsRegistry.tsx`, `client\src\components\projects\CreateProjectDialog.tsx`, `client\src\components\settings\CertificateQualitySettings.tsx`, `client\src\components\settings\InspectionActivityBuilder.tsx`
 
 ## Sprint 0 controls

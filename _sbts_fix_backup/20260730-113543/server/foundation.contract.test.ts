@@ -95,43 +95,4 @@ describe("SBTS 2.2 foundational contracts", () => {
       workflow.indexOf("actions/setup-node"),
     );
   });
-
-  it("keeps workflow action keys literal across UI, runtime and tRPC", () => {
-    const specification = read("shared/workflowSpecification.ts");
-    const blindDetail = read("client/src/pages/BlindDetailHub.tsx");
-    expect(specification).toContain(
-      "as const satisfies readonly CanonicalWorkflowPhase[]",
-    );
-    expect(blindDetail).not.toContain("as WorkflowActionKey");
-    expect(blindDetail).toContain("actionKey: runtime.currentPhase.actionKey");
-  });
-
-  it("persists theme changes locally and in the authenticated user profile", () => {
-    const themeContext = read("client/src/contexts/ThemeContext.tsx");
-    const themeToggle = read("client/src/components/theme/ThemeToggle.tsx");
-    const appShell = read("client/src/components/layout/AppShell.tsx");
-    const migration = read("drizzle/0019_sprint4_foundation_stabilization.sql");
-
-    expect(themeContext).toContain('THEME_STORAGE_KEY = "sbts-theme-v2"');
-    expect(themeToggle).toContain("trpc.profile.updateTheme.useMutation");
-    expect(appShell).toContain("never overwrite a");
-    expect(migration).toContain("DEFAULT 'standard'");
-  });
-
-  it("keeps Area reads side-effect free and Area creation explicit", () => {
-    const projectsDb = read("server/db/projects.ts");
-    const getAreasBody = projectsDb.slice(
-      projectsDb.indexOf("export async function getAreas"),
-      projectsDb.indexOf("export async function getAreaById"),
-    );
-    const createAreaBody = projectsDb.slice(
-      projectsDb.indexOf("export async function createArea"),
-      projectsDb.indexOf("// ─── Project Queries"),
-    );
-    expect(getAreasBody).toContain("db.select().from(areas)");
-    expect(getAreasBody).not.toContain("db.insert");
-    expect(getAreasBody).not.toContain("seedAreasAndProjects");
-    expect(createAreaBody).toContain("db.insert(areas)");
-  });
-
 });
