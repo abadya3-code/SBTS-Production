@@ -1,4 +1,4 @@
-# ابدأ من هنا — SBTS 2.1 Clean Release
+# ابدأ من هنا — SBTS 2.2 Foundation Clean
 
 هذه نسخة مصدر كاملة ونظيفة، لا تحتوي على `.git` أو `.env` أو `node_modules` أو `dist` أو كلمات مرور.
 
@@ -8,7 +8,7 @@
 2. فك ضغط الحزمة الجديدة في مسار ثابت، مثل:
 
 ```text
-C:\Projects\SBTS\SBTS-2.1-Clean
+C:\Projects\SBTS\SBTS-2.2-Foundation-Clean
 ```
 
 3. افتح هذا المجلد نفسه في VS Code.

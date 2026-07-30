@@ -14,6 +14,7 @@ const root = process.cwd();
 const migrationDirectory = path.join(root, "drizzle");
 const domainPattern = /^(\d{4})_sprint.*\.sql$/;
 const baselineUpTo = Number.parseInt(process.env.SBTS_DOMAIN_MIGRATION_BASELINE_UP_TO || "0", 10);
+const migrationLockName = "sbts_domain_migrations_v2";
 
 function sha256(value: string) {
   return createHash("sha256").update(value).digest("hex");
@@ -61,7 +62,6 @@ export function splitSqlStatements(source: string): string[] {
         continue;
       }
       if (char === quote) {
-        // SQL escapes a quote by doubling it.
         if (next === quote && quote !== "`") {
           current += next;
           index += 1;
@@ -108,9 +108,152 @@ export function splitSqlStatements(source: string): string[] {
   return statements;
 }
 
+async function acquireMigrationLock(connection: mysql.Connection) {
+  const [rows] = await connection.execute<mysql.RowDataPacket[]>(
+    "SELECT GET_LOCK(?, 60) AS acquired",
+    [migrationLockName],
+  );
+  if (Number(rows[0]?.acquired) !== 1) {
+    throw new Error("Could not acquire the SBTS migration lock within 60 seconds.");
+  }
+}
+
+async function releaseMigrationLock(connection: mysql.Connection) {
+  await connection.execute("SELECT RELEASE_LOCK(?)", [migrationLockName]).catch(() => undefined);
+}
+
+async function recordStep(
+  connection: mysql.Connection,
+  migrationName: string,
+  statementIndex: number,
+  signature: string,
+  operation: () => Promise<void>,
+) {
+  const statementChecksum = sha256(signature);
+  const [rows] = await connection.execute<mysql.RowDataPacket[]>(
+    `SELECT statementChecksum
+       FROM sbts_domain_migration_steps
+      WHERE migrationName = ? AND statementIndex = ?
+      LIMIT 1`,
+    [migrationName, statementIndex],
+  );
+  if (rows[0]) {
+    if (String(rows[0].statementChecksum) !== statementChecksum) {
+      throw new Error(
+        `Recorded recovery step ${statementIndex} in ${migrationName} has a different checksum.`,
+      );
+    }
+    console.log(`  ✓ recovery step ${statementIndex} already applied`);
+    return;
+  }
+
+  await operation();
+  await connection.execute(
+    `INSERT INTO sbts_domain_migration_steps
+       (migrationName, statementIndex, statementChecksum)
+     VALUES (?, ?, ?)`,
+    [migrationName, statementIndex, statementChecksum],
+  );
+  console.log(`  ✓ recovery step ${statementIndex} applied`);
+}
+
+const blindAlignmentColumns = [
+  ["material", "varchar(80) NULL"],
+  ["flangeType", "varchar(80) NULL"],
+  ["gasketType", "varchar(80) NULL"],
+  ["boltSize", "varchar(40) NULL"],
+  ["torqueValue", "varchar(40) NULL"],
+  ["thickness", "varchar(40) NULL"],
+  ["tempRating", "varchar(40) NULL"],
+  ["pidRef", "varchar(80) NULL"],
+  ["isoDrawing", "varchar(80) NULL"],
+  ["lineNumber2", "varchar(120) NULL"],
+  ["installDate", "timestamp NULL"],
+  ["expiryDate", "timestamp NULL"],
+] as const;
+
+/**
+ * Railway currently provisions MySQL builds where ALTER TABLE ... ADD COLUMN
+ * IF NOT EXISTS is not portable. Migration 0018 originally used that syntax.
+ * This compatibility path keeps the immutable migration file/checksum intact,
+ * inspects information_schema, and adds only missing columns one at a time.
+ * It is safe after a partially failed deployment.
+ */
+async function applySchemaAlignment0018(
+  connection: mysql.Connection,
+  migrationName: string,
+  sql: string,
+) {
+  const [tableRows] = await connection.execute<mysql.RowDataPacket[]>(
+    `SELECT table_name AS tableName
+       FROM information_schema.tables
+      WHERE table_schema = DATABASE() AND table_name = 'blinds'
+      LIMIT 1`,
+  );
+  if (!tableRows.length) {
+    throw new Error("Migration 0018 requires the blinds table from earlier migrations.");
+  }
+
+  for (let index = 0; index < blindAlignmentColumns.length; index += 1) {
+    const [columnName, definition] = blindAlignmentColumns[index];
+    await recordStep(
+      connection,
+      migrationName,
+      1000 + index,
+      `ensure-column:${columnName}:${definition}`,
+      async () => {
+        const [columnRows] = await connection.execute<mysql.RowDataPacket[]>(
+          `SELECT column_name AS columnName
+             FROM information_schema.columns
+            WHERE table_schema = DATABASE()
+              AND table_name = 'blinds'
+              AND column_name = ?
+            LIMIT 1`,
+          [columnName],
+        );
+        if (!columnRows.length) {
+          await connection.query(
+            `ALTER TABLE \`blinds\` ADD COLUMN \`${columnName}\` ${definition}`,
+          );
+        }
+      },
+    );
+  }
+
+  const statements = splitSqlStatements(sql);
+  const createFeatureToggles = statements.find((statement) =>
+    /CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+`?feature_toggles`?/i.test(statement),
+  );
+  const seedFeatureToggles = statements.find((statement) =>
+    /INSERT\s+INTO\s+`?feature_toggles`?/i.test(statement),
+  );
+  if (!createFeatureToggles || !seedFeatureToggles) {
+    throw new Error("Migration 0018 is missing the feature_toggles operations.");
+  }
+
+  await recordStep(
+    connection,
+    migrationName,
+    1100,
+    createFeatureToggles,
+    async () => { await connection.query(createFeatureToggles); },
+  );
+  await recordStep(
+    connection,
+    migrationName,
+    1101,
+    seedFeatureToggles,
+    async () => { await connection.query(seedFeatureToggles); },
+  );
+}
+
 async function main() {
   const connection = await mysql.createConnection(databaseUrl);
+  let lockAcquired = false;
   try {
+    await acquireMigrationLock(connection);
+    lockAcquired = true;
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS sbts_domain_migrations (
         migrationName varchar(255) NOT NULL,
@@ -137,7 +280,9 @@ async function main() {
     const [appliedRows] = await connection.query<mysql.RowDataPacket[]>(
       "SELECT migrationName, migrationChecksum FROM sbts_domain_migrations",
     );
-    const applied = new Map(appliedRows.map((row) => [String(row.migrationName), String(row.migrationChecksum)]));
+    const applied = new Map(
+      appliedRows.map((row) => [String(row.migrationName), String(row.migrationChecksum)]),
+    );
 
     for (const file of files) {
       const index = Number.parseInt(file.slice(0, 4), 10);
@@ -145,10 +290,15 @@ async function main() {
       const checksum = sha256(sql);
       const previous = applied.get(file);
       if (previous) {
-        if (previous !== checksum) throw new Error(`Applied migration ${file} has changed. Restore the original migration or create a new one.`);
+        if (previous !== checksum) {
+          throw new Error(
+            `Applied migration ${file} has changed. Restore the original migration or create a new one.`,
+          );
+        }
         console.log(`✓ ${file} already applied`);
         continue;
       }
+
       if (baselineUpTo >= index) {
         await connection.execute(
           "INSERT INTO sbts_domain_migrations (migrationName, migrationChecksum) VALUES (?, ?)",
@@ -168,11 +318,24 @@ async function main() {
             LIMIT 10`,
         );
         if (duplicateEmails.length) {
-          const values = duplicateEmails.map((row) => String(row.normalizedEmail)).join(", ");
+          const values = duplicateEmails
+            .map((row) => String(row.normalizedEmail))
+            .join(", ");
           throw new Error(
             `Migration ${file} cannot create the unique email index because duplicate accounts exist: ${values}. Resolve duplicates before deployment.`,
           );
         }
+      }
+
+      if (file === "0018_sprint6_schema_alignment.sql") {
+        console.log(`→ Applying ${file} with portable schema recovery`);
+        await applySchemaAlignment0018(connection, file, sql);
+        await connection.execute(
+          "INSERT INTO sbts_domain_migrations (migrationName, migrationChecksum) VALUES (?, ?)",
+          [file, checksum],
+        );
+        console.log(`✓ Applied ${file}`);
+        continue;
       }
 
       const statements = splitSqlStatements(sql);
@@ -181,7 +344,9 @@ async function main() {
         "SELECT statementIndex, statementChecksum FROM sbts_domain_migration_steps WHERE migrationName = ?",
         [file],
       );
-      const appliedSteps = new Map(stepRows.map((row) => [Number(row.statementIndex), String(row.statementChecksum)]));
+      const appliedSteps = new Map(
+        stepRows.map((row) => [Number(row.statementIndex), String(row.statementChecksum)]),
+      );
 
       console.log(`→ Applying ${file} (${statements.length} statements)`);
       for (let statementIndex = 0; statementIndex < statements.length; statementIndex += 1) {
@@ -203,7 +368,9 @@ async function main() {
           throw new Error(`Migration ${file}, statement ${statementIndex + 1} failed: ${message}`);
         }
         await connection.execute(
-          "INSERT INTO sbts_domain_migration_steps (migrationName, statementIndex, statementChecksum) VALUES (?, ?, ?)",
+          `INSERT INTO sbts_domain_migration_steps
+             (migrationName, statementIndex, statementChecksum)
+           VALUES (?, ?, ?)`,
           [file, statementIndex, statementChecksum],
         );
         console.log(`  ✓ statement ${statementIndex + 1}/${statements.length}`);
@@ -216,11 +383,15 @@ async function main() {
       console.log(`✓ Applied ${file}`);
     }
   } finally {
+    if (lockAcquired) await releaseMigrationLock(connection);
     await connection.end();
   }
 }
 
 main().catch((error) => {
-  console.error("SBTS domain migration failed:", error instanceof Error ? error.message : error);
+  console.error(
+    "SBTS domain migration failed:",
+    error instanceof Error ? error.message : error,
+  );
   process.exit(1);
 });

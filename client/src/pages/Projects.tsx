@@ -2,11 +2,12 @@
 Design Philosophy: Industrial Command Center Minimalism.
 The projects page works in two modes: a full project portfolio and a contextual area scope opened from the Areas page, so users avoid repetitive navigation while keeping area context visible.
 */
+import { useState } from "react";
 import { AlertTriangle, ArrowLeft, ArrowRight, FolderKanban, MapPin, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { PageHeader } from "@/components/common/PageHeader";
+import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
 
 type ProjectStatus = "Active" | "Completed" | "On Hold" | "Planning" | "Final Review";
 
@@ -39,6 +40,7 @@ function ProjectSkeletonGrid() {
 }
 
 export default function Projects() {
+  const [createOpen, setCreateOpen] = useState(false);
   const [isAreaRoute, params] = useRoute("/areas/:areaId/projects");
   const requestedAreaId = isAreaRoute ? params?.areaId ?? "" : "";
   const parsedAreaId = Number(requestedAreaId);
@@ -49,6 +51,7 @@ export default function Projects() {
   const allProjectsQuery = trpc.projects.list.useQuery(undefined, { enabled: !isAreaRoute });
   const areaProjectsQuery = trpc.projects.listByArea.useQuery({ areaId: selectedAreaId ?? 0 }, { enabled: isScopedToArea });
   const areaQuery = trpc.areas.getById.useQuery({ id: selectedAreaId ?? 0 }, { enabled: isScopedToArea });
+  const availableAreasQuery = trpc.areas.list.useQuery();
 
   const activeProjectsQuery = isScopedToArea ? areaProjectsQuery : allProjectsQuery;
   const projects = activeProjectsQuery.data ?? [];
@@ -79,13 +82,20 @@ export default function Projects() {
               </Link>
             )}
             <button
-              onClick={() => toast.info(isScopedToArea ? "Project creation API is ready; the form will open with this area pre-selected." : "Project creation API is ready; select an area first for the fastest entry flow.")}
+              onClick={() => setCreateOpen(true)}
               className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800"
             >
               <Plus className="h-4 w-4" /> New project
             </button>
           </div>
         }
+      />
+
+      <CreateProjectDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        areas={availableAreasQuery.data ?? []}
+        defaultAreaId={selectedAreaId}
       />
 
       {isAreaMissing && (

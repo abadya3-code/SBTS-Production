@@ -13,7 +13,7 @@ import { getStorageBackend } from "../storage";
 import { getDatabaseUrl } from "./databaseUrl";
 import { ENV } from "./env";
 
-const APP_VERSION = process.env.APP_VERSION?.trim() || "2.1.0";
+const APP_VERSION = process.env.APP_VERSION?.trim() || "2.2.0";
 
 function validateEnvironment() {
   getDatabaseUrl(process.env.DATABASE_URL, {
@@ -78,6 +78,7 @@ async function startServer() {
       version: APP_VERSION,
       startedAt: startedAt.toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
+      commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "local",
     });
   });
 
@@ -90,7 +91,12 @@ async function startServer() {
         return;
       }
       await db.execute(sql`select 1 as ready`);
-      res.status(200).json({ status: "ready", database: "connected" });
+      res.status(200).json({
+        status: "ready",
+        database: "connected",
+        version: APP_VERSION,
+        commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "local",
+      });
     } catch (error) {
       console.error("[Readiness] database check failed:", error);
       res.status(503).json({ status: "not_ready", database: "error" });
@@ -107,10 +113,24 @@ async function startServer() {
       onError({ error, path, ctx }) {
         const requestId = (ctx?.req as express.Request & { requestId?: string })
           ?.requestId;
+        const internal = error.code === "INTERNAL_SERVER_ERROR";
+        const causeName =
+          error.cause && typeof error.cause === "object" && "name" in error.cause
+            ? String(error.cause.name)
+            : undefined;
         console.error(
-          `[tRPC] requestId=${requestId ?? "unknown"} path=${path ?? "unknown"}:`,
-          error.message,
+          JSON.stringify({
+            event: "trpc_error",
+            requestId: requestId ?? "unknown",
+            path: path ?? "unknown",
+            code: error.code,
+            message: internal ? "Internal server error" : error.message.slice(0, 300),
+            cause: internal ? causeName ?? "Error" : undefined,
+          }),
         );
+        if (!ENV.isProduction && internal) {
+          console.error(error);
+        }
       },
     }),
   );

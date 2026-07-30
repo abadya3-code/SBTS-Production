@@ -39,7 +39,6 @@ async function appendQualityAudit(input: { projectId: string; blindTag: string }
 }
 
 export async function getQualityRecords(input: { projectId: string; blindTag: string }, actor: ActingProjectUser) {
-  await ensureBlindWorkflowRuntime(input.projectId, input.blindTag);
   await assertAnyWorkflowPermission(actor, [
     "workflow.quality.defect.record", "workflow.quality.defect.review",
     "workflow.quality.punch.manage", "workflow.quality.punch.verify",
@@ -229,7 +228,10 @@ export async function upsertNdtRecord(input: {
   if (reviewing && !input.result?.trim()) throw new Error("An NDT result is required for review status.");
   if (reviewing && existing?.performedByOpenId === actor.openId) throw new Error("NDT review must be recorded by a different authorized user than the performer.");
   const now = new Date();
-  const values = {
+  const policy = await getWorkflowPolicySettings();
+  const ndtNumber = existing?.ndtNumber ?? controlledNumber(policy.ndtNumberPrefix || "NDT", input.blindTag);
+  const values: typeof ndtRecords.$inferInsert = {
+    ndtNumber,
     projectId: input.projectId, blindTag: input.blindTag, defectId: input.defectId ?? null,
     method: input.method, procedureReference: input.procedureReference ?? null,
     acceptanceCriteria: input.acceptanceCriteria ?? null, status: input.status,
@@ -246,7 +248,7 @@ export async function upsertNdtRecord(input: {
     if (affectedRows(updateResult) === 0) throw new Error("This NDT record was updated by another user. Refresh before saving.");
     id = existing.id;
   } else {
-    const result = await db.insert(ndtRecords).values({ ...values, ndtNumber: controlledNumber(policy.ndtNumberPrefix || "NDT", input.blindTag) }).$returningId();
+    const result = await db.insert(ndtRecords).values(values).$returningId();
     id = result[0]?.id;
   }
   await appendQualityAudit(input, actor, "NDT Record Updated", `${input.method} · ${input.status}.`);

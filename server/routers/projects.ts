@@ -74,7 +74,19 @@ export const projectsRouter = router({
   create: protectedProcedure
     .input(projectCreateSchema)
     .mutation(async ({ input, ctx }) => {
-      const project = await createProject(input);
+      let project: Awaited<ReturnType<typeof createProject>>;
+      try {
+        project = await createProject(input);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Project creation failed.";
+        if (/already exists/i.test(message)) {
+          throw new TRPCError({ code: "CONFLICT", message });
+        }
+        if (/unknown areaId|inactive|reference data is missing/i.test(message)) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message });
+        }
+        throw error;
+      }
 
       // Notify all admins about the new project
       const allUsers = await getAllUsers();
@@ -90,7 +102,7 @@ export const projectsRouter = router({
           title: `مشروع جديد: ${input.name}`,
           body: `تم إنشاء مشروع جديد "${input.name}" بواسطة ${ctx.user.name ?? ctx.user.openId}.`,
           linkUrl: `/projects/${input.id}`,
-          projectId: typeof input.id === "string" ? undefined : input.id,
+          projectId: input.id,
         }).catch(() => { /* non-critical */ });
       }
 

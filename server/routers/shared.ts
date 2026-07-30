@@ -71,21 +71,25 @@ export const projectSettingsSchema = z.object({
 });
 
 export const areaCreateSchema = z.object({
-  name: z.string().min(2).max(200),
-  code: z.string().min(2).max(40),
-  description: z.string().max(1_500).nullable().optional(),
-  location: z.string().max(200).nullable().optional(),
+  name: z.string().trim().min(2).max(200),
+  code: z.string().trim().min(2).max(40)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/, "Area code may contain only letters, numbers, hyphens, and underscores.")
+    .transform((value) => value.toUpperCase()),
+  description: z.string().trim().max(1_500).nullable().optional(),
+  location: z.string().trim().max(200).nullable().optional(),
   isActive: z.boolean().optional(),
 });
 
 export const projectCreateSchema = z.object({
-  id: z.string().min(2).max(40),
-  name: z.string().min(2).max(200),
+  id: z.string().trim().min(2).max(40)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/, "Project ID may contain only letters, numbers, hyphens, and underscores.")
+    .transform((value) => value.toUpperCase()),
+  name: z.string().trim().min(2).max(200),
   areaId: z.number().int().positive(),
   status: projectStatusSchema.default("Planning"),
   blindsCount: z.number().int().min(0).max(100_000).default(0),
   progress: z.number().int().min(0).max(100).default(0),
-  description: z.string().max(1_500).nullable().optional(),
+  description: z.string().trim().max(1_500).nullable().optional(),
 });
 
 // ─── Workflow Schemas ──────────────────────────────────────────────────────

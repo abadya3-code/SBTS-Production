@@ -68,6 +68,7 @@ export {
   seedAccessControl,
   seedAreasAndProjects,
   seedWorkflows,
+  seedSystemReferenceData,
   serializePhaseAssignees,
 } from "./seed";
 

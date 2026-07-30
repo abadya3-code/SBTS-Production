@@ -4,6 +4,7 @@
  * Procedures for plant areas management.
  */
 
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { createArea, getAreaById, getAreas } from "../db";
@@ -18,5 +19,15 @@ export const areasRouter = router({
 
   create: protectedProcedure
     .input(areaCreateSchema)
-    .mutation(async ({ input }) => createArea(input)),
+    .mutation(async ({ input }) => {
+      try {
+        return await createArea(input);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Area creation failed.";
+        if (/already exists/i.test(message)) {
+          throw new TRPCError({ code: "CONFLICT", message });
+        }
+        throw error;
+      }
+    }),
 });

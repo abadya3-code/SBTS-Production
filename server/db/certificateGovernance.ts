@@ -93,7 +93,6 @@ async function buildCertificateSnapshot(projectId: string, blindTag: string) {
 }
 
 export async function getCertificateReadiness(projectId: string, blindTag: string) {
-  await ensureBlindWorkflowRuntime(projectId, blindTag);
   const db = await requireDb();
   const policy = await getWorkflowPolicySettings();
   const runtime = (await db.select().from(blindWorkflowRuntime).where(and(eq(blindWorkflowRuntime.projectId, projectId), eq(blindWorkflowRuntime.blindTag, blindTag))).limit(1))[0];

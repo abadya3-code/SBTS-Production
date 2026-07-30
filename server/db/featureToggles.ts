@@ -11,11 +11,11 @@ export async function getFeatureToggles() {
   const db = await requireDb();
   const rows = await db.select().from(featureToggles).where(eq(featureToggles.id, 1)).limit(1);
   if (rows.length === 0) {
-    await db.insert(featureToggles).values({});
-    const newRows = await db.select().from(featureToggles).where(eq(featureToggles.id, 1)).limit(1);
-    return newRows[0]!;
+    throw new Error(
+      "Feature toggle reference row is missing. Run pnpm db:migrate before serving requests.",
+    );
   }
-  return rows[0]!;
+  return rows[0];
 }
 
 export async function updateFeatureToggles(
@@ -23,6 +23,17 @@ export async function updateFeatureToggles(
   actorOpenId?: string,
 ) {
   const db = await requireDb();
-  await db.update(featureToggles).set({ ...data, updatedByOpenId: actorOpenId }).where(eq(featureToggles.id, 1));
+  const existing = await db
+    .select({ id: featureToggles.id })
+    .from(featureToggles)
+    .where(eq(featureToggles.id, 1))
+    .limit(1);
+  if (!existing[0]) {
+    await db.insert(featureToggles).values({ id: 1 });
+  }
+  await db
+    .update(featureToggles)
+    .set({ ...data, updatedByOpenId: actorOpenId })
+    .where(eq(featureToggles.id, 1));
   return getFeatureToggles();
 }

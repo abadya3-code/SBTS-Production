@@ -1,4 +1,4 @@
-# إعداد Railway النهائي — SBTS 2.1
+# إعداد Railway النهائي — SBTS 2.2 Foundation
 
 ## 1. الخدمات المطلوبة
 
@@ -52,11 +52,14 @@ ADMIN_EMPLOYEE_NUMBER=SBTS-ADMIN
 
 خلال Pre-deploy يقوم النظام بـ:
 
-1. فحص المتغيرات.
-2. تطبيق جميع migrations.
-3. إنشاء Admin أو إعادة ضبط كلمة مرور الحساب الموجود.
-4. التحقق فعليًا من الـpassword hash.
-5. اختبار إنشاء JWT والتحقق منه.
+1. فحص المتغيرات ورفض القيم الافتراضية أو DATABASE_URL الخاطئ.
+2. تطبيق Drizzle migrations ثم SBTS domain migrations مع إصلاح آمن لأي فشل جزئي في migration 0018.
+3. فحص عقد الجداول والأعمدة والفهارس الفعلية في MySQL.
+4. تثبيت بيانات النظام المرجعية فقط: الصلاحيات والأدوار وقالب الـworkflow.
+5. إنشاء أو استكمال canonical workflow runtime لكل Blind موجود.
+6. إنشاء Admin أو إعادة ضبط كلمة مرور الحساب الموجود عند تفعيل Bootstrap.
+7. التحقق من الجداول والأعمدة والعلاقات والـruntime والـpassword hash.
+8. اختبار إنشاء JWT والتحقق منه وربطه بنفس VITE_APP_ID.
 
 يجب أن يظهر أحد السطرين:
 
@@ -91,6 +94,8 @@ Docker locked install
 → release check
 → Vite/Express build
 → pre-deploy validation and migrations
+→ system reference seed (no demo data)
+→ workflow runtime backfill
 → admin bootstrap when enabled
 → production doctor
 → node dist/index.js
@@ -109,3 +114,15 @@ https://YOUR-DOMAIN/ready
 ## 8. المرفقات
 
 ابدأ بـ`STORAGE_REQUIRED=false`. عند إضافة Railway Bucket اربط متغيراته S3 ثم غيّرها إلى true بعد اختبار الرفع والحذف.
+
+
+## 9. قاعدة بيانات الاختبار Demo
+
+لا يتم تشغيل `SEED_DEMO_DATA` تلقائيًا في Railway. لإنشاء بيانات تجريبية في بيئة UAT مؤقتة فقط:
+
+```env
+SEED_DEMO_DATA=true
+ALLOW_DEMO_DATA_IN_PRODUCTION=true
+```
+
+ثم شغّل `pnpm data:seed` يدويًا. لا تستخدم ذلك في قاعدة الإنتاج الحقيقية.

@@ -62,9 +62,6 @@ function normalizeWorkflowRows(
 }
 
 async function assertAccessReferences(input: WorkflowTemplateInput): Promise<void> {
-  // Import lazily to avoid circular dependency with seed.ts
-  const { seedAccessControl } = await import("./seed");
-  await seedAccessControl();
   const db = await requireDb();
   const [roleRows, permissionRows] = await Promise.all([
     db.select({ key: accessRoles.key }).from(accessRoles),
@@ -85,8 +82,6 @@ async function assertAccessReferences(input: WorkflowTemplateInput): Promise<voi
 // ─── Access Control ────────────────────────────────────────────────────────
 
 export async function getAccessControlModel(): Promise<AccessControlModel> {
-  const { seedAccessControl } = await import("./seed");
-  await seedAccessControl();
   const db = await requireDb();
   const [permissionRows, roleRows, assignmentRows] = await Promise.all([
     db.select().from(accessPermissions).orderBy(asc(accessPermissions.group), asc(accessPermissions.label)),
@@ -118,9 +113,6 @@ export async function getAccessControlModel(): Promise<AccessControlModel> {
 // ─── Workflow CRUD ─────────────────────────────────────────────────────────
 
 export async function getAllWorkflows(): Promise<WorkflowTemplateInput[]> {
-  const { seedAccessControl, seedWorkflows } = await import("./seed");
-  await seedAccessControl();
-  await seedWorkflows();
   const db = await requireDb();
   const templateRows = await db.select().from(workflowTemplates).orderBy(asc(workflowTemplates.name));
   const phaseRows = await db.select().from(workflowPhases).orderBy(asc(workflowPhases.sortOrder));

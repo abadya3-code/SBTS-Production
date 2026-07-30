@@ -13,5 +13,6 @@ ADMIN_EMAIL=REPLACE_WITH_YOUR_EMAIL
 ADMIN_PASSWORD=REPLACE_WITH_STRONG_PASSWORD
 ADMIN_EMPLOYEE_NUMBER=SBTS-ADMIN
 
-# UAT/staging only. Keep false in real production.
+# Demo seed is manual only. Keep both false in production.
 SEED_DEMO_DATA=false
+ALLOW_DEMO_DATA_IN_PRODUCTION=false

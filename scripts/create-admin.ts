@@ -7,7 +7,7 @@ import {
   updateUserPassword,
 } from "../server/db/auth";
 import { requireDb } from "../server/db/core";
-import { seedAccessControl, seedWorkflows } from "../server/db/seed";
+import { seedSystemReferenceData } from "../server/db/seed";
 
 function requireStrongPassword(password: string) {
   if (password.length < 12) {
@@ -34,8 +34,7 @@ async function main() {
   }
   requireStrongPassword(password);
 
-  await seedAccessControl();
-  await seedWorkflows();
+  await seedSystemReferenceData();
 
   const existing = await getUserByEmail(email);
   if (existing) {

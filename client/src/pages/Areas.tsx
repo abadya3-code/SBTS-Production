@@ -2,11 +2,12 @@
 Design Philosophy: Industrial Command Center Minimalism.
 The areas page acts as the operational map before entering projects: each area card exposes project load, readiness, and a direct contextual path into its project list.
 */
+import { useState } from "react";
 import { Activity, AlertTriangle, ArrowRight, Layers3, MapPinned, Plus, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 import { PageHeader } from "@/components/common/PageHeader";
+import { CreateAreaDialog } from "@/components/areas/CreateAreaDialog";
 import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
 
 function AreaSkeletonGrid() {
   return (
@@ -29,6 +30,7 @@ function AreaSkeletonGrid() {
 }
 
 export default function Areas() {
+  const [createOpen, setCreateOpen] = useState(false);
   const areasQuery = trpc.areas.list.useQuery();
   const areas = areasQuery.data ?? [];
   const totalProjects = areas.reduce((sum, area) => sum + area.projectCount, 0);
@@ -42,7 +44,7 @@ export default function Areas() {
         description="Browse plant areas as first-class operational containers, then open the linked project scope without losing context. Counts and status come directly from the database."
         actions={
           <button
-            onClick={() => toast.info("Area creation API is ready; the full form will be added after the review of required fields.")}
+            onClick={() => setCreateOpen(true)}
             className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800"
           >
             <Plus className="h-4 w-4" /> New Area
@@ -114,6 +116,8 @@ export default function Areas() {
           <p className="mx-auto mt-2 max-w-xl text-sm font-medium leading-6 text-slate-600">Create the first area to group projects by plant location and make browsing less repetitive for coordinators and field teams.</p>
         </div>
       )}
+
+      <CreateAreaDialog open={createOpen} onOpenChange={setCreateOpen} />
 
       {!areasQuery.isLoading && !areasQuery.isError && areas.length > 0 && (
         <div className="grid gap-5 lg:grid-cols-3">

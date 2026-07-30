@@ -19,7 +19,13 @@ const doctor = read("scripts/production-doctor.ts");
 const login = read("client/src/pages/Login.tsx");
 
 check("Standalone app id fallback", env.includes('"sbts-standalone"'), "A non-empty appId fallback is required.");
-check("Legacy session compatibility", sdk.includes('appId: isNonEmptyString(appId) ? appId : ENV.appId'), "Session verification must repair old empty appId payloads.");
+check(
+  "Deployment-bound session validation",
+  sdk.includes("issuer: ENV.appId")
+    && sdk.includes("audience: ENV.appId")
+    && sdk.includes("appId !== ENV.appId"),
+  "Session verification must reject tokens issued for another SBTS deployment.",
+);
 check("Secure session secret", sdk.includes("JWT_SECRET must contain at least 32 characters"), "Session signing must reject weak secrets.");
 check("Same-origin cookie policy", cookies.includes('sameSite: "lax"'), "Standalone auth should use SameSite=Lax.");
 check("Admin password reset", admin.includes("updateUserPassword(existing.openId, password)"), "Bootstrap must reset an existing admin password.");

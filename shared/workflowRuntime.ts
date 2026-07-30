@@ -15,6 +15,7 @@ export type WorkflowBlockingCode =
   | "PERMISSION_REQUIRED"
   | "CHECKLIST_INCOMPLETE"
   | "EVIDENCE_INCOMPLETE"
+  | "EVIDENCE_REQUIRED"
   | "PTW_NOT_ACTIVE"
   | "LINE_BREAKING_PERMIT_NOT_ACTIVE"
   | "LOTO_NOT_ACTIVE"
@@ -31,12 +32,16 @@ export type WorkflowBlockingCode =
   | "ISOLATION_PACKAGE_REQUIRED"
   | "ENTRY_READINESS_NOT_AUTHORIZED"
   | "LEAK_TEST_NOT_PASSED"
-  | "FINAL_APPROVALS_INCOMPLETE";
+  | "FINAL_APPROVALS_INCOMPLETE"
+  | "INSPECTION_ACTIVITIES_INCOMPLETE"
+  | "DEFECT_DISPOSITION_INCOMPLETE"
+  | "MANDATORY_PUNCH_ITEMS_OPEN"
+  | "NDT_ACCEPTANCE_INCOMPLETE";
 
 export type WorkflowBlockingReason = {
   code: WorkflowBlockingCode;
   message: string;
-  source: "workflow" | "checklist" | "permit" | "loto" | "gasTest" | "torque" | "package" | "hold" | "approval" | "leakTest";
+  source: "workflow" | "checklist" | "permit" | "loto" | "gasTest" | "torque" | "package" | "hold" | "approval" | "leakTest" | "inspection";
 };
 
 export const workflowPhaseIndex = Object.fromEntries(

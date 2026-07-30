@@ -1,3 +1,17 @@
+# CHANGELOG — SBTS Professional Edition
+
+## 2.2.0 — Foundation Clean Release
+
+- Added portable, resumable recovery for domain migration `0018`.
+- Added explicit non-demo system seed and canonical workflow-runtime backfill.
+- Removed demo seed/runtime initialization from production query paths.
+- Added working database-backed Area and Project creation dialogs.
+- Added schema-contract and production-doctor gates for MySQL, references,
+  relationships, admin credentials, and JWT round-trip.
+- Bound JWT issuer/audience/appId to the configured deployment.
+- Fixed GitHub Actions pnpm setup ordering and added commit visibility to
+  `/health` and `/ready`.
+- Added foundational regression contracts and updated Railway/GitHub runbooks.
 
 ## 2.0.0-beta.4.2 — Git/Railway Master Release
 

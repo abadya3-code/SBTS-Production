@@ -180,8 +180,17 @@ describe("projects phase-owner procedures", () => {
     await caller.projects.addBlind(validBlindInput);
 
     expect(dbMock.addBlindToProject).toHaveBeenCalledWith(
-      validBlindInput,
-      expect.objectContaining({ openId: "operator-open-id" }),
+      expect.objectContaining({
+        ...validBlindInput,
+        slipBlindMerged: false,
+        slipMetalForemanApproved: false,
+      }),
+      expect.objectContaining({
+        openId: "operator-open-id",
+        email: "operator@example.com",
+        name: "Operator",
+        role: "user",
+      }),
     );
   });
 

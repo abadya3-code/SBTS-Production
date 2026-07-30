@@ -199,6 +199,8 @@ class SDKServer {
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setSubject(payload.openId)
+      .setIssuer(ENV.appId)
+      .setAudience(ENV.appId)
       .setIssuedAt(Math.floor(issuedAt / 1000))
       .setExpirationTime(expirationSeconds)
       .sign(secretKey);
@@ -217,6 +219,8 @@ class SDKServer {
       const secretKey = this.getSessionSecret();
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
+        issuer: ENV.appId,
+        audience: ENV.appId,
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
 
@@ -224,13 +228,14 @@ class SDKServer {
         console.warn("[Auth] Session payload missing openId");
         return null;
       }
+      if (!isNonEmptyString(appId) || appId !== ENV.appId) {
+        console.warn("[Auth] Session appId does not match this SBTS deployment");
+        return null;
+      }
 
-      // Backward-compatible fallback for cookies created by early standalone
-      // releases where appId/name could be empty. A fresh cookie is issued on
-      // the next successful login.
       return {
         openId,
-        appId: isNonEmptyString(appId) ? appId : ENV.appId,
+        appId,
         name: isNonEmptyString(name) ? name : "SBTS User",
       };
     } catch (error) {
@@ -281,6 +286,9 @@ class SDKServer {
     // No OAuth sync — if user not found, the session is invalid
     if (!user) {
       throw ForbiddenError("User not found");
+    }
+    if (user.userStatus !== "active") {
+      throw ForbiddenError("User account is not active");
     }
 
     // Update last sign-in timestamp (fire and forget)

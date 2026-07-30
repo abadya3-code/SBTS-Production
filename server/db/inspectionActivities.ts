@@ -87,7 +87,7 @@ export async function upsertInspectionActivityTemplate(input: {
 }
 
 export async function getBlindInspectionActivities(input: { projectId: string; blindTag: string }, actor: ActingProjectUser) {
-  await ensureBlindWorkflowRuntime(input.projectId, input.blindTag);
+  await assertAnyWorkflowPermission(actor, ["workflow.view", "workflow.record.inspection", "workflow.inspection.approve"]);
   const db = await requireDb();
   const templates = await db.select().from(inspectionActivityTemplates)
     .where(eq(inspectionActivityTemplates.active, 1))

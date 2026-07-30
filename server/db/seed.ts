@@ -1,14 +1,17 @@
 /**
  * server/db/seed.ts
  * ─────────────────
- * Seed data constants and seed functions.
- * Called lazily on first DB query to populate empty databases.
+ * Explicit seed routines.
+ *
+ * System reference data (permissions, roles, workflow templates) is installed
+ * during deployment. Demo areas/projects/blinds are opt-in and are never
+ * invoked from production read paths.
  */
 
 import { asc } from "drizzle-orm";
 import {
   InsertArea, InsertBlind, InsertProject, InsertProjectPhaseOwner, InsertProjectSettings,
-  accessPermissions, accessRolePermissions, accessRoles, areas, blinds,
+  accessPermissions, accessRolePermissions, accessRoles, areas, blinds, featureToggles,
   projectPhaseOwners, projectSettings, projects, workflowPhases, workflowTemplates,
 } from "../../drizzle/schema";
 import { requireDb } from "./core";
@@ -340,4 +343,18 @@ export async function seedWorkflows(): Promise<void> {
   for (const workflow of seedWorkflowTemplates) {
     if (!existingIds.has(workflow.id)) await upsertWorkflow(workflow, "system-seed");
   }
+}
+
+
+/**
+ * Install idempotent system-owned reference rows required by the application.
+ * This intentionally excludes demo Areas, Projects, and Blinds.
+ */
+export async function seedSystemReferenceData(): Promise<void> {
+  await seedWorkflows();
+  const db = await requireDb();
+  await db
+    .insert(featureToggles)
+    .values({ id: 1 })
+    .onDuplicateKeyUpdate({ set: { id: 1 } });
 }

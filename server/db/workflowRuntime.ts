@@ -57,7 +57,6 @@ import {
 import { getWorkflowPolicySettings } from "./settings";
 import { evaluateGasTestAcceptance } from "./gasTestPolicy";
 import { broadcastNotification, createNotification } from "./notifications";
-import { seedWorkflows } from "./seed";
 import { requireDb } from "./core";
 import type { ActingProjectUser, BlindPhase } from "./types";
 
@@ -339,7 +338,6 @@ async function notifyWorkflowRoles(
 }
 
 export async function ensureBlindWorkflowRuntime(projectId: string, blindTag: string): Promise<void> {
-  await seedWorkflows();
   const db = await requireDb();
   const blindRows = await db.select().from(blinds).where(and(eq(blinds.projectId, projectId), eq(blinds.tag, blindTag))).limit(1);
   const blind = blindRows[0];
@@ -505,7 +503,6 @@ export async function evaluateWorkflowGate(
   blindTag: string,
   actor?: RuntimeActor,
 ): Promise<{ ready: boolean; blockingReasons: WorkflowBlockingReason[] }> {
-  await ensureBlindWorkflowRuntime(projectId, blindTag);
   const context = await loadGateContext(projectId, blindTag);
   const policy = await getWorkflowPolicySettings();
   const phaseKey = parseCanonicalPhase(context.runtime.currentPhaseKey);
@@ -700,7 +697,6 @@ export async function getBlindWorkflowRuntimeView(
   blindTag: string,
   actor: RuntimeActor,
 ): Promise<WorkflowRuntimeView> {
-  await ensureBlindWorkflowRuntime(projectId, blindTag);
   const db = await requireDb();
   const context = await loadGateContext(projectId, blindTag);
   const phaseKey = parseCanonicalPhase(context.runtime.currentPhaseKey);

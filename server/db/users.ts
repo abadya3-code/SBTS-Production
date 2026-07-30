@@ -11,12 +11,10 @@ import {
 } from "../../drizzle/schema";
 import { requireDb } from "./core";
 import { AccessControlModel, PhaseKey, RoleKey, UserWithRoles } from "./types";
-import { seedAccessControl } from "./seed";
 
 // ─── Access Control ────────────────────────────────────────────────────────
 
 export async function getAccessControlModel(): Promise<AccessControlModel> {
-  await seedAccessControl();
   const db = await requireDb();
   const [permissionRows, roleRows, assignmentRows] = await Promise.all([
     db.select().from(accessPermissions).orderBy(asc(accessPermissions.group), asc(accessPermissions.label)),

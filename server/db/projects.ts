@@ -7,7 +7,7 @@
 import { asc, eq } from "drizzle-orm";
 import {
   InsertProject, InsertProjectPhaseOwner, InsertProjectSettings,
-  areas, blindWorkflowRuntime, blinds, projectPhaseOwners, projectSettings, projects, projectWorkflowAssignments, users,
+  areas, blindWorkflowRuntime, blinds, projectPhaseOwners, projectSettings, projects, projectWorkflowAssignments, users, workflowTemplates,
 } from "../../drizzle/schema";
 import { requireDb } from "./core";
 import {
@@ -17,7 +17,7 @@ import {
 } from "./types";
 import {
   blindPhaseOrder, defaultPhaseColors, defaultPhaseOwners,
-  sanitizePhaseColor, seedWorkflows, serializePhaseAssignees,
+  sanitizePhaseColor, serializePhaseAssignees,
 } from "./seed";
 import { normalizeBlindRows, canActingUserEditAssignedPhase } from "./blinds";
 import type { ActingProjectUser } from "./types";
@@ -189,14 +189,18 @@ export async function getAreaById(id: number): Promise<AreaModel | undefined> {
 
 export async function createArea(input: AreaInput): Promise<AreaModel> {
   const db = await requireDb();
+  const code = input.code.trim().toUpperCase();
+  const existing = await db.select({ id: areas.id }).from(areas).where(eq(areas.code, code)).limit(1);
+  if (existing[0]) throw new Error(`Area code ${code} already exists.`);
+
   await db.insert(areas).values({
-    name: input.name,
-    code: input.code,
-    description: input.description ?? null,
-    location: input.location ?? null,
+    name: input.name.trim(),
+    code,
+    description: input.description?.trim() || null,
+    location: input.location?.trim() || null,
     isActive: input.isActive === false ? 0 : 1,
   });
-  const areaRows = await db.select().from(areas).where(eq(areas.code, input.code)).limit(1);
+  const areaRows = await db.select().from(areas).where(eq(areas.code, code)).limit(1);
   if (!areaRows[0]) throw new Error("Area could not be read after creation.");
   return normalizeAreaRows(areaRows, [])[0];
 }
@@ -222,14 +226,33 @@ export async function getProjectsByArea(areaId: number): Promise<ProjectModel[]>
 }
 
 export async function createProject(input: ProjectInput): Promise<ProjectModel> {
-  await seedWorkflows();
   const db = await requireDb();
+  const workflowRows = await db
+    .select({ id: workflowTemplates.id })
+    .from(workflowTemplates)
+    .where(eq(workflowTemplates.id, "wf-sbts-standard-v2"))
+    .limit(1);
+  if (!workflowRows[0]) {
+    throw new Error(
+      "System workflow reference data is missing. Run pnpm system:seed before creating projects.",
+    );
+  }
+  const projectId = input.id.trim().toUpperCase();
+  const existingProject = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (existingProject[0]) throw new Error(`Project ID ${projectId} already exists.`);
+
   const targetArea = await getAreaById(input.areaId);
   if (!targetArea) throw new Error(`Cannot create project for unknown areaId: ${input.areaId}`);
+  if (!targetArea.isActive) throw new Error(`Area ${targetArea.code} is inactive.`);
+
   await db.transaction(async (tx) => {
     await tx.insert(projects).values({
-      id: input.id,
-      name: input.name,
+      id: projectId,
+      name: input.name.trim(),
       areaId: input.areaId,
       status: input.status,
       blindsCount: input.blindsCount ?? 0,
@@ -237,7 +260,7 @@ export async function createProject(input: ProjectInput): Promise<ProjectModel> 
       description: input.description ?? null,
     });
     await tx.insert(projectWorkflowAssignments).values({
-      projectId: input.id,
+      projectId,
       workflowTemplateId: "wf-sbts-standard-v2",
       workflowVersion: "2.0",
       status: "active",
@@ -245,7 +268,7 @@ export async function createProject(input: ProjectInput): Promise<ProjectModel> 
       assignedByOpenId: "project-create",
     });
   });
-  const saved = await db.select().from(projects).where(eq(projects.id, input.id)).limit(1);
+  const saved = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!saved[0]) throw new Error("Project could not be read after creation.");
   const areaRows = await db.select().from(areas);
   return normalizeProjectRows(saved, areaRows)[0];

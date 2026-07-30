@@ -1,6 +1,6 @@
 {
   "name": "sbts-professional",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -28,13 +28,17 @@
     "db:migrate:domain": "tsx scripts/apply-sbts-domain-migrations.ts",
     "release:check": "node scripts/verify-release.mjs",
     "railway:build": "pnpm release:check && pnpm build",
-    "railway:predeploy": "pnpm deploy:check && pnpm db:migrate && if [ \"${BOOTSTRAP_ADMIN_ON_DEPLOY:-false}\" = \"true\" ]; then pnpm admin:create; fi && if [ \"${SEED_DEMO_DATA:-false}\" = \"true\" ]; then pnpm data:seed; fi && pnpm doctor",
+    "railway:predeploy": "pnpm deploy:check && pnpm db:migrate && pnpm schema:contract && pnpm system:seed && pnpm workflow:backfill && if [ \"${BOOTSTRAP_ADMIN_ON_DEPLOY:-false}\" = \"true\" ]; then pnpm admin:create; fi && pnpm doctor",
     "deploy:check": "tsx scripts/validate-deployment-env.ts",
     "admin:reset": "pnpm admin:create",
     "sprint5:verify": "node scripts/sprint5-verify.mjs && node scripts/sprint5-sql-validate.mjs && node scripts/typescript-syntax-check.mjs",
     "doctor": "tsx scripts/production-doctor.ts",
     "sprint5:sql": "node scripts/sprint5-sql-validate.mjs",
-    "data:seed": "tsx scripts/seed-demo-data.ts"
+    "data:seed": "tsx scripts/seed-demo-data.ts",
+    "system:seed": "tsx scripts/seed-system-data.ts",
+    "workflow:backfill": "tsx scripts/backfill-workflow-runtime.ts",
+    "schema:contract": "tsx scripts/verify-schema-contract.ts",
+    "foundation:check": "pnpm release:check && pnpm verify"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

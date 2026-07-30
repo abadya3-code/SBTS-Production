@@ -8,7 +8,11 @@ import { sdk } from "../server/_core/sdk";
 const requiredTables = [
   "users",
   "access_permissions",
+  "access_roles",
+  "access_role_permissions",
   "workflow_templates",
+  "workflow_phases",
+  "project_workflow_assignments",
   "blind_workflow_runtime",
   "certificate_records",
   "areas",
@@ -16,10 +20,20 @@ const requiredTables = [
   "blinds",
   "feature_toggles",
   "sbts_domain_migrations",
+  "sbts_domain_migration_steps",
 ];
 
 function bool(value: string | undefined) {
   return ["1", "true", "yes", "on"].includes((value ?? "").trim().toLowerCase());
+}
+
+async function scalarCount(
+  connection: mysql.Connection,
+  statement: string,
+  params: unknown[] = [],
+): Promise<number> {
+  const [rows] = await connection.execute<mysql.RowDataPacket[]>(statement, params);
+  return Number(rows[0]?.rowCount ?? rows[0]?.count ?? 0);
 }
 
 async function main() {
@@ -71,6 +85,62 @@ async function main() {
       throw new Error(`blinds is missing required columns: ${missingBlindColumns.join(", ")}`);
     }
 
+    const permissionCount = await scalarCount(
+      connection,
+      "SELECT COUNT(*) AS rowCount FROM access_permissions",
+    );
+    const roleCount = await scalarCount(
+      connection,
+      "SELECT COUNT(*) AS rowCount FROM access_roles",
+    );
+    const workflowCount = await scalarCount(
+      connection,
+      "SELECT COUNT(*) AS rowCount FROM workflow_templates WHERE id = ?",
+      ["wf-sbts-standard-v2"],
+    );
+    const featureToggleCount = await scalarCount(
+      connection,
+      "SELECT COUNT(*) AS rowCount FROM feature_toggles WHERE id = 1",
+    );
+    if (permissionCount === 0 || roleCount === 0 || workflowCount === 0 || featureToggleCount === 0) {
+      throw new Error(
+        "System reference data is incomplete. Run pnpm system:seed before starting SBTS.",
+      );
+    }
+
+    const orphanProjectCount = await scalarCount(
+      connection,
+      `SELECT COUNT(*) AS rowCount
+         FROM projects p
+         LEFT JOIN areas a ON a.id = p.areaId
+        WHERE a.id IS NULL`,
+    );
+    const orphanBlindCount = await scalarCount(
+      connection,
+      `SELECT COUNT(*) AS rowCount
+         FROM blinds b
+         LEFT JOIN projects p ON p.id = b.projectId
+        WHERE p.id IS NULL`,
+    );
+    if (orphanProjectCount || orphanBlindCount) {
+      throw new Error(
+        `Referential integrity failed: orphanProjects=${orphanProjectCount}, orphanBlinds=${orphanBlindCount}.`,
+      );
+    }
+
+    const missingRuntimeCount = await scalarCount(
+      connection,
+      `SELECT COUNT(*) AS rowCount
+         FROM blinds b
+         LEFT JOIN blind_workflow_runtime r ON r.blindTag = b.tag
+        WHERE r.blindTag IS NULL`,
+    );
+    if (missingRuntimeCount > 0) {
+      throw new Error(
+        `${missingRuntimeCount} blind record(s) have no canonical workflow runtime. Run pnpm workflow:backfill.`,
+      );
+    }
+
     const bootstrapEnabled = bool(process.env.BOOTSTRAP_ADMIN_ON_DEPLOY);
     const configuredEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
     const configuredPassword = process.env.ADMIN_PASSWORD ?? "";
@@ -88,12 +158,19 @@ async function main() {
         [configuredEmail],
       );
       const admin = rows[0];
-      if (!admin) throw new Error(`Configured administrator ${configuredEmail} was not found after bootstrap.`);
+      if (!admin) {
+        throw new Error(`Configured administrator ${configuredEmail} was not found after bootstrap.`);
+      }
       if (admin.role !== "admin" || admin.userStatus !== "active") {
         throw new Error(`Configured administrator ${configuredEmail} is not an active admin.`);
       }
-      if (!admin.passwordHash || !(await bcrypt.compare(configuredPassword, String(admin.passwordHash)))) {
-        throw new Error(`Configured administrator ${configuredEmail} password verification failed after bootstrap.`);
+      if (
+        !admin.passwordHash
+        || !(await bcrypt.compare(configuredPassword, String(admin.passwordHash)))
+      ) {
+        throw new Error(
+          `Configured administrator ${configuredEmail} password verification failed after bootstrap.`,
+        );
       }
       if (admin.lockedUntil && new Date(admin.lockedUntil).getTime() > Date.now()) {
         throw new Error(`Configured administrator ${configuredEmail} is still locked.`);
@@ -110,7 +187,9 @@ async function main() {
           LIMIT 1`,
       );
       if (!rows.length) {
-        throw new Error("No active password-enabled administrator exists. Temporarily enable BOOTSTRAP_ADMIN_ON_DEPLOY.");
+        throw new Error(
+          "No active password-enabled administrator exists. Temporarily enable BOOTSTRAP_ADMIN_ON_DEPLOY.",
+        );
       }
       adminOpenId = String(rows[0].openId);
     }
@@ -120,7 +199,11 @@ async function main() {
       expiresInMs: 60_000,
     });
     const session = await sdk.verifySession(token);
-    if (!session || session.openId !== adminOpenId || !session.appId) {
+    if (
+      !session
+      || session.openId !== adminOpenId
+      || session.appId !== ENV.appId
+    ) {
       throw new Error("Session signing/verification round-trip failed.");
     }
 
@@ -128,9 +211,15 @@ async function main() {
       status: "passed",
       database: "connected",
       migrations: "current",
+      schemaAlignment: true,
+      systemReferenceData: true,
+      orphanProjects: orphanProjectCount,
+      orphanBlinds: orphanBlindCount,
+      missingWorkflowRuntime: missingRuntimeCount,
       activeAdmin: true,
       sessionRoundTrip: true,
       appId: ENV.appId,
+      commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "local",
     }, null, 2));
   } finally {
     await connection.end();
@@ -138,6 +227,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("SBTS_PRODUCTION_DOCTOR_FAILED:", error instanceof Error ? error.message : error);
+  console.error(
+    "SBTS_PRODUCTION_DOCTOR_FAILED:",
+    error instanceof Error ? error.message : error,
+  );
   process.exit(1);
 });

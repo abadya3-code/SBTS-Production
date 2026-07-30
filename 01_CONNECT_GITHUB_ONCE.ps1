@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-Write-Host "SBTS 2.1 - connect this clean folder to GitHub" -ForegroundColor Cyan
+Write-Host "SBTS 2.2 - connect this clean foundation folder to GitHub" -ForegroundColor Cyan
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
   throw "Git is not installed or not available in PATH."
 }
@@ -18,7 +18,7 @@ if (-not (git config user.email)) {
   git config user.email (Read-Host "Enter your GitHub verified email")
 }
 
-$defaultRepo = "https://github.com/abadya3-code/SBS.git"
+$defaultRepo = "https://github.com/abadya3-code/SBTS-Production.git"
 $repoUrl = Read-Host "GitHub repository URL [$defaultRepo]"
 if ([string]::IsNullOrWhiteSpace($repoUrl)) { $repoUrl = $defaultRepo }
 
@@ -51,7 +51,7 @@ if ($LASTEXITCODE -eq 0) {
 git add -A
 $staged = git diff --cached --name-only
 if ($staged) {
-  git commit -m "Deploy SBTS 2.1 clean production-ready release"
+  git commit -m "Deploy SBTS 2.2 foundation clean release"
   if ($LASTEXITCODE -ne 0) { throw "Git commit failed." }
 } else {
   Write-Host "No source differences were found." -ForegroundColor Yellow

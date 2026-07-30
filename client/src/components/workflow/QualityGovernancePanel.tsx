@@ -83,6 +83,15 @@ function QualityDialog({ kind, record, defects, pending, onClose, onSave }: any)
   </div><DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={pending || !(form.title || form.method)} onClick={save}>{pending ? "Saving..." : "Save Controlled Record"}</Button></DialogFooter></DialogContent></Dialog>;
 }
 function toLocal(value: unknown) { if (!value) return ""; const date = new Date(value as any); return Number.isNaN(date.getTime()) ? "" : new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
-function Field({ label, children, full }: any) { return <div className={`space-y-1.5 ${full ? "sm:col-span-2" : ""}`}><Label>{label}</Label>{children}</div>; }
-function Check({ label, checked, onChange }: any) { return <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><Checkbox checked={checked} onCheckedChange={(value) => onChange(Boolean(value))} />{label}</label>; }
-function SelectField({ label, value, options, labels = {}, onChange }: any) { return <Field label={label}><Select value={value || options[0]} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map((option: string) => <SelectItem key={option} value={option}>{labels[option] || option.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></Field>; }
+type FieldProps = { label: string; children: React.ReactNode; full?: boolean };
+type CheckProps = { label: string; checked: boolean; onChange: (value: boolean) => void };
+type SelectFieldProps = {
+  label: string;
+  value?: string;
+  options: readonly string[];
+  labels?: Record<string, string>;
+  onChange: (value: string) => void;
+};
+function Field({ label, children, full = false }: FieldProps) { return <div className={`space-y-1.5 ${full ? "sm:col-span-2" : ""}`}><Label>{label}</Label>{children}</div>; }
+function Check({ label, checked, onChange }: CheckProps) { return <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><Checkbox checked={checked} onCheckedChange={(value) => onChange(value === true)} />{label}</label>; }
+function SelectField({ label, value, options, labels = {}, onChange }: SelectFieldProps) { return <Field label={label}><Select value={value || options[0]} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map((option) => <SelectItem key={option} value={option}>{labels[option] || option.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></Field>; }

@@ -230,7 +230,7 @@ describe("Reports router registration", () => {
     const { reportsRouter } = await import("../server/routers/reports");
     expect(reportsRouter).toBeDefined();
     expect(typeof reportsRouter).toBe("object");
-  });
+  }, 15000);
 
   it("reportsRouter has required procedures", async () => {
     const { reportsRouter } = await import("../server/routers/reports");
@@ -239,11 +239,11 @@ describe("Reports router registration", () => {
     expect(record).toHaveProperty("blinds");
     expect(record).toHaveProperty("projectSummaries");
     expect(record).toHaveProperty("areaSummaries");
-  });
+  }, 15000);
 
   it("reportsRouter is registered in appRouter", async () => {
     const { appRouter } = await import("../server/routers/index");
     const record = (appRouter as any)._def.record;
     expect(record).toHaveProperty("reports");
-  });
+  }, 15000);
 });

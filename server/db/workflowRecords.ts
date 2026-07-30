@@ -238,7 +238,7 @@ export async function createOrUpdateTorqueRecord(input: {
   if (existing && existing.stage !== input.stage) {
     throw new Error("Torque stage cannot be changed after the record is created.");
   }
-  const executionValues = {
+  const executionValues: typeof torqueRecords.$inferInsert = {
     blindTag: input.blindTag,
     projectId: input.projectId,
     stage: input.stage,
@@ -260,7 +260,7 @@ export async function createOrUpdateTorqueRecord(input: {
     notes: input.notes ?? null,
     updatedAt: new Date(),
   };
-  const verificationValues = {
+  const verificationValues: Partial<typeof torqueRecords.$inferInsert> = {
     status: input.status,
     acceptedByOpenId: actor.openId,
     acceptedAt: input.status === "accepted" ? new Date() : null,
@@ -273,7 +273,7 @@ export async function createOrUpdateTorqueRecord(input: {
     await appendWorkflowRecordAudit(db, input, actor, isVerificationDecision ? "Torque Verification Recorded" : "Torque Record Updated", `${input.stage} torque record updated with status ${input.status}.`);
     return { id: existing.id };
   }
-  const result = await db.insert(torqueRecords).values(values).$returningId();
+  const result = await db.insert(torqueRecords).values(executionValues).$returningId();
   await appendWorkflowRecordAudit(db, input, actor, "Torque Record Created", `${input.stage} torque record created with status ${input.status}.`);
   return { id: result[0]?.id };
 }

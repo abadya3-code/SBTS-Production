@@ -1,0 +1,36 @@
+SBTS 2.2 FOUNDATION CLEAN - VERIFICATION EVIDENCE
+Generated: 2026-07-29
+Source baseline: SBTS_2.1.3_Engineering_Clean
+
+EXECUTED IN ARTIFACT ENVIRONMENT
+[PASS] node scripts/sprint0-baseline.mjs
+[PASS] node scripts/sprint2-verify.mjs          73/73
+[PASS] node scripts/sprint2-sql-validate.mjs
+[PASS] node scripts/sprint3-verify.mjs          40/40
+[PASS] node scripts/sprint3-sql-validate.mjs
+[PASS] node scripts/sprint4-verify.mjs          66/66
+[PASS] node scripts/sprint4-sql-validate.mjs
+[PASS] node scripts/sprint5-verify.mjs          16/16
+[PASS] node scripts/sprint5-sql-validate.mjs
+[PASS] node scripts/typescript-syntax-check.mjs 226 files / 0 syntax errors
+[PASS] node scripts/verify-release.mjs          24 files / 0 failures
+[PASS] package.json parsed
+[PASS] railway.json parsed
+[PASS] no .env, .git, node_modules, or dist included
+
+NOT EXECUTED IN ARTIFACT ENVIRONMENT
+- pnpm check
+- pnpm test
+- pnpm build
+- live MySQL migrations/schema contract/doctor
+
+Reason: dependency installation and a live MySQL service are not available in
+the artifact execution environment. These are mandatory gates in GitHub CI and
+must be run in the user's clone/Railway before promotion.
+
+EXPECTED USER/GITHUB GATES
+pnpm install --frozen-lockfile
+pnpm foundation:check
+
+EXPECTED RAILWAY GATE
+pnpm railway:predeploy
