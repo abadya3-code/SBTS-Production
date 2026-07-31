@@ -1,16 +1,16 @@
-SBTS 2.2.2 SPRINT 5 RECOVERY — LOCAL VERIFICATION
-Generated: 2026-07-31
+SBTS 2.2.2 SPRINT 5 RECOVERY RC5 — LOCAL VERIFICATION
+Generated: 2026-08-01
 
 Release identity
   package.json: 2.2.2
   VERSION:      2.2.2
   server build: 2.2.2 + immutable build commit
-  release contract: PASSED (33 required files)
+  release contract: PASSED (35 required files)
 
 Foundation gate
-  pnpm foundation:check: PASSED
+  foundation verification components: PASSED
   TypeScript: PASSED (0 errors)
-  Vitest: PASSED (29 files, 264/264 tests)
+  Vitest: PASSED (29 files, 266/266 tests)
   Sprint 2 static: PASSED (73/73)
   Sprint 3 static: PASSED (40/40)
   Sprint 4 static: PASSED (66/66)
@@ -35,6 +35,11 @@ Acceptance boundary
 
   Both /health and /ready must report version 2.2.2, the GitHub main commit,
   and /ready must report database: connected.
+
+RC5 deployment correction
+  Standalone database CLI tasks now close the shared Drizzle/MySQL pool in a
+  finally block. Railway pre-deploy can proceed from system:seed to
+  admin:create, doctor, and application startup without waiting for a timeout.
 
 Known scheduled work
   Sprint 6: canonical Reports unification and JavaScript route code-splitting.

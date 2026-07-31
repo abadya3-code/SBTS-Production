@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { closeDb } from "../server/db/core";
 import { seedSystemReferenceData } from "../server/db/seed";
 
 async function main() {
@@ -6,10 +7,26 @@ async function main() {
   console.log("SBTS_SYSTEM_REFERENCE_DATA_READY");
 }
 
-main().catch((error) => {
-  console.error(
-    "SBTS_SYSTEM_REFERENCE_DATA_FAILED:",
-    error instanceof Error ? error.message : error,
-  );
-  process.exit(1);
-});
+async function run() {
+  try {
+    await main();
+  } catch (error) {
+    console.error(
+      "SBTS_SYSTEM_REFERENCE_DATA_FAILED:",
+      error instanceof Error ? error.message : error
+    );
+    process.exitCode = 1;
+  } finally {
+    try {
+      await closeDb();
+    } catch (error) {
+      console.error(
+        "SBTS_DATABASE_CLOSE_FAILED:",
+        error instanceof Error ? error.message : error
+      );
+      process.exitCode = 1;
+    }
+  }
+}
+
+void run();

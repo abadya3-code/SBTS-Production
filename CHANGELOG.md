@@ -1,5 +1,12 @@
 # CHANGELOG — SBTS Professional Edition
 
+## 2.2.2 — Sprint 5 Recovery RC5
+
+- Fixed Railway pre-deploy commands remaining alive after successful database
+  work by closing the shared Drizzle/MySQL pool in standalone CLI scripts.
+- Added regression coverage for system seeding, administrator bootstrap,
+  workflow backfill, and optional demo seeding process termination.
+
 ## 2.2.2 — Sprint 5 Recovery RC4
 
 - Corrected the hosted MySQL schema contract to validate the physical
@@ -62,21 +69,25 @@
 ## [v2.0.0-beta.3] — 2026-07-24 · Sprint 3 Vertical Integration
 
 ### Field operations and UI
+
 - Added database-backed PTW, LOTO, gas-test, torque, inspection, evidence and leak-test editors inside Blind Detail.
 - Added a dedicated Vessel Isolation Packages page with package creation, linked-Blind status and entry readiness.
 - Preserved the global theme system and semantic design tokens across all new pages and dialogs.
 
 ### Inspection configuration
+
 - Added `inspection_activity_templates` and `inspection_activity_records`.
 - Added the Settings Inspection Activity Builder with mandatory, evidence and independent-approval rules.
 - Added independent inspection approval permission and enforced different completer/approver identities.
 
 ### Evidence and operational governance
+
 - Added evidence MIME/size policy, current-phase evidence controls and audit entries.
 - Separated torque execution from independent acceptance in both UI and server permissions.
 - Added operational audit events for permit, LOTO, gas, torque, leak test, package, evidence and inspection changes.
 
 ### Verification
+
 - Sprint 3 static checks: 40/40.
 - TypeScript/TSX syntax: 213 files, zero parse errors.
 - Migration 0015 SQL validation: passed, 9 statements, TiDB static compatibility checks passed.
@@ -87,6 +98,7 @@
 ## [v2.0-runtime-beta.2] — 2026-07-24 · Sprint 2
 
 ### Database Domain Migration
+
 - Added additive Migration `0014_sprint2_workflow_runtime.sql` for the canonical eight-phase runtime.
 - Added project workflow assignments, Blind runtime/version state, phase instances, checklist responses and immutable transition events.
 - Added Isolation Packages, entry-readiness records, permits, LOTO, gas tests, torque, leak tests, Safety Holds, sequential approvals and evidence metadata.
@@ -95,6 +107,7 @@
 - Seeded Sprint 2 RBAC permissions and operational roles inside the migration.
 
 ### Backend State Machine
+
 - Replaced arbitrary phase updates with action commands and server-owned transition rules.
 - Added server gate evaluation, optimistic concurrency, transition event snapshots, package reconciliation and workflow notifications.
 - Added two-step independent Safety Hold release with exact lifecycle restoration.
@@ -103,12 +116,14 @@
 - Added Operations Foreman as the final return-to-service authority.
 
 ### UI, Settings and Theme Integration
+
 - Connected Project Detail and Blind Detail Hub to the canonical runtime and lifecycle status.
 - Added controlled workflow actions, live blocking reasons, checklist persistence and Safety Hold release controls.
 - Expanded Workflow & Safety Settings with gas limits, package rules, UI density and safety-banner controls.
 - Preserved system theme consistency and database-controlled theme policy.
 
 ### Verification
+
 - Sprint 2 static acceptance checks: 73/73.
 - SQL structural validation: 33 statements, balanced and TiDB-compatible static rules.
 - TypeScript/TSX syntax validation: 207 files, zero syntax errors.
@@ -119,23 +134,27 @@
 ## [v1.1-foundation] — 2026-07-24 · Sprint 0 + Sprint 1
 
 ### Baseline and architecture
+
 - Added automated baseline inventory and verification scripts.
 - Added canonical eight-phase workflow specification shared by frontend and backend.
 - Preserved legacy five-phase blind data during controlled migration.
 
 ### Database and backend
+
 - Added canonical workflow phase keys and active `wf-sbts-standard-v2` template.
 - Added workflow/safety policy settings table and tRPC procedures.
 - Added Operations, Independent Mechanical Verifier and Entry Supervisor roles plus granular permissions.
 - Improved seed behavior so existing databases receive missing catalog records safely.
 
 ### Frontend and UI/UX
+
 - Added Workflow & Safety Settings tab with plant-configurable gates.
 - Connected default application theme and override policy to the database.
 - Corrected Dashboard hero setting linkage.
 - Removed state updates during render from Settings and User Profile.
 
 ### Verification boundary
+
 - TS/TSX syntax and internal partial checks passed. Full dependency-based test/build remains required in connected CI.
 
 ---
@@ -145,15 +164,18 @@
 **الـ checkpoint:** `466f185c`
 
 ### قاعدة البيانات
+
 - إضافة حقول جديدة لجدول `users`: `userStatus` (pending/active/rejected)، `department`، `specialty`، `employeeNumber`، `registrationNote`، `approvedByOpenId`، `approvedAt`
 - تطبيق migration SQL على قاعدة البيانات
 
 ### Backend (server)
+
 - إضافة 4 helpers في `server/db.ts`: `completeUserRegistration`، `approveUserRegistration`، `rejectUserRegistration`، `getPendingUsers`
 - إضافة 4 procedures في `accessControlRouter`: `pendingUsers` (admin only)، `approveUser` (admin only)، `rejectUser` (admin only)، `completeRegistration` (protected)
 - إرسال إشعار تلقائي للمدير عند وصول طلب تسجيل جديد عبر `notifyOwner`
 
 ### Frontend
+
 - إنشاء `Login.tsx`: صفحة دخول احترافية بتصميم Industrial مع OAuth — خارج AppShell
 - إنشاء `Register.tsx`: نموذج إكمال البيانات المهنية (قسم، تخصص، رقم موظف، ملاحظة)
 - إنشاء `Approve.tsx`: صفحة انتظار الموافقة مع polling كل 30 ثانية وعرض حالة الطلب
@@ -162,6 +184,7 @@
 - تحديث `App.tsx`: إضافة routes خارج AppShell للمسارات العامة (`/login`, `/register`, `/approve`)
 
 ### الاختبارات
+
 - إضافة `server/registration.test.ts` (7 اختبارات جديدة)
 - إجمالي: 69 اختبار ناجح — TypeScript: 0 أخطاء
 
@@ -172,6 +195,7 @@
 **الـ checkpoint:** `94d1c11`
 
 ### Frontend
+
 - إضافة تبويب **Permission Matrix** مرئي في Access Control Center
 - مصفوفة تفاعلية للأدوار والصلاحيات مع إمكانية التعديل المباشر
 - دعم التصفية، البحث، ومقارنة الأدوار
@@ -184,13 +208,16 @@
 **الـ checkpoint:** `c42ce0c`
 
 ### قاعدة البيانات
+
 - إضافة جدول `user_role_assignments` لربط المستخدمين بالأدوار
 
 ### Backend (server)
+
 - إضافة 6 helpers في `server/db.ts`: `getAllUsers`، `assignRolesToUser`، `updateUserSystemRole`، `updateAccessControlModel`، `createAccessRole`، `deleteAccessRole`
 - إضافة 6 procedures في `accessControlRouter`: `users`، `assignRoles`، `updateSystemRole`، `updateRoles`، `createRole`، `deleteRole`
 
 ### Frontend
+
 - بناء `UserManagement.tsx`: جدول المستخدمين مع تعديل الأدوار
 - تحديث `AccessControl.tsx`: ربط كامل بـ tRPC API بدلاً من mockData
 - واجهة إنشاء دور جديد (Dialog) مع حفظ في قاعدة البيانات
@@ -198,6 +225,7 @@
 - إضافة مسار `/users` في App.tsx وربطه بالقائمة الجانبية
 
 ### الاختبارات
+
 - 62 اختبار ناجح — TypeScript: 0 أخطاء — Build: نجح
 
 ---
@@ -207,10 +235,12 @@
 **الـ checkpoint:** `897548c`
 
 ### Backend (server)
+
 - إضافة procedure `uploadLogo`: يقبل base64 ويرفع إلى S3 مع تحقق النوع والحجم
 - إضافة procedure `removeLogo`: يحذف logoUrl من قاعدة البيانات
 
 ### Frontend
+
 - تحديث Certificate Settings: إضافة drag-and-drop لرفع الشعار
 - معاينة فورية للشعار بعد الرفع مع زر Remove
 - الاحتفاظ بخيار إدخال URL كبديل
@@ -223,6 +253,7 @@
 **الـ checkpoint:** `0505245`
 
 ### Frontend
+
 - إنشاء hook مشترك `useCertificateSettings` لجلب إعدادات الشهادة من الخادم
 - إنشاء دوال مساعدة مشتركة: `openPrintWindow`، `buildReportHeader`، `buildSignaturesSection`، `buildReportFooter`، `getPaperCSS`
 - تحديث جميع مكونات التقارير الأربعة لاستخدام الإعدادات الحقيقية تلقائياً عند الطباعة: `ProjectSummaryReport`، `WorkflowPhasesReport`، `StatisticsReport`، `BlindsDetailedReport`
@@ -232,13 +263,16 @@
 ## [v0.5] — 2026-05-xx · System Settings (General, Default Tag, Certificate)
 
 ### قاعدة البيانات
+
 - إضافة 3 جداول: `systemSettings`، `defaultTagSettings`، `certificateSettings`
 
 ### Backend (server)
+
 - إضافة helpers في `server/db.ts` للإعدادات الثلاثة
 - إضافة `settingsRouter` في `server/routers.ts`
 
 ### Frontend
+
 - بناء `SystemSettings.tsx` مع ثلاثة تبويبات:
   - **General Settings**: اللغة، المنطقة الزمنية، الإشعارات، الشركة
   - **Default Tag Settings**: بادئة Tag، الحجم الافتراضي، النوع، الأولوية
@@ -250,6 +284,7 @@
 ## [v0.4b] — 2026-05-xx · Professional Printing & Reports System
 
 ### Frontend
+
 - إنشاء نظام تقارير متكامل مع 4 أنواع:
   - **Project Summary Report**: ملخص شامل للمشروع
   - **Workflow Phases Report**: تقرير مراحل سير العمل
@@ -264,6 +299,7 @@
 ## [v0.4a] — 2026-05-xx · Advanced BlindsRegistry Features
 
 ### Frontend
+
 - تصدير جدول BlindsRegistry إلى Excel مع تنسيق احترافي
 - نظام ترقيم (Pagination) متقدم مع التحكم في عدد الصفوف (10, 25, 50, 100)
 - البحث والفرز على الصفحات المختلفة
@@ -275,14 +311,17 @@
 **الـ checkpoint:** `1f9bc0a`
 
 ### قاعدة البيانات
+
 - إضافة نموذج بيانات للاعتماد الإلكتروني لكل فيز داخل كل Blind
 - ربط اعتماد الفيز بسجل النشاط (activity log)
 
 ### Backend (server)
+
 - إضافة procedure `approveBlindPhase` مع فرض قواعد سير العمل
 - تحويل Export certificates وExport tags إلى تصدير PDF فعلي
 
 ### Frontend
+
 - بناء `BlindDetail.tsx`: صفحة تفاصيل Blind مستقلة
   - أعلى الصفحة: بيانات المنطقة، المشروع، الموقع، المقاس، الريت، الحالة
   - جسم الصفحة: جميع الفيزات على اليسار مع الحالة والـ log على اليمين
@@ -297,14 +336,17 @@
 **الـ checkpoint:** `b9dc8a7`
 
 ### قاعدة البيانات
+
 - إضافة جدول `project_phase_owners` لربط مراحل المشروع بمسؤولين متعددين
 
 ### Backend (server)
+
 - إضافة procedures: `addBlind`، `bulkAddBlinds`، `updateBlind`، `settings.update`
 - فرض صلاحيات Phase Owner: المسؤول المحدد فقط يمكنه التعديل
 - دعم Slip Blind gates: إلزامية موافقة Foreman Metal وتأكيد الدمج
 
 ### Frontend
+
 - نموذج Add Blind مع أنواع: Slip Blind، Drop Spool، Isolation
 - حقول: rate، equipment (بدلاً من lineNumber)، نوع Blind
 - واجهة Bulk Paste من Excel مع معاينة قبل الحفظ وزر Load example
@@ -318,6 +360,7 @@
 **الـ checkpoint:** `060907b`
 
 ### Frontend
+
 - إنشاء مكونات Dashboard داخل ProjectDetail:
   - `ProjectHeader`: معلومات المشروع والحالة والتقدم
   - `MetricsCards`: المقاييس الرئيسية
@@ -333,13 +376,16 @@
 **الـ checkpoint:** `e4d4c29`
 
 ### قاعدة البيانات
+
 - إضافة جدول `blinds` مع علاقة بجدول `projects`
 
 ### Backend (server)
+
 - إضافة procedure `projects.detail` يعيد تفاصيل المشروع مع سجلات الستائر
 - إضافة procedure `projects.blindDetail` لتفاصيل Blind محدد
 
 ### Frontend
+
 - بناء `ProjectDetail.tsx`: صفحة تفاصيل مشروع مع ملخص ومؤشرات وسجلات الستائر
 - ربط أزرار "Open project" في صفحة Projects بمسار تفاصيل المشروع
 
@@ -350,14 +396,17 @@
 **الـ checkpoint:** `ece5815`
 
 ### قاعدة البيانات
+
 - إضافة جدول `areas` مع علاقة بجدول `projects`
 - Seed للمناطق التشغيلية الأولية لـ SBTS
 
 ### Backend (server)
+
 - إضافة `areasRouter`: `list`، `getById`، `create`
 - إضافة `projects.listByArea` لمشاريع منطقة محددة
 
 ### Frontend
+
 - بناء `Areas.tsx`: كروت المناطق مع عدد المشاريع وحالة النشاط
 - تحديث `Projects.tsx`: دعم عرض كل المشاريع أو مشاريع منطقة محددة
 - انتقال سياقي بين المناطق والمشاريع بدون فقدان السياق
@@ -369,6 +418,7 @@
 **الـ checkpoint:** `0ee3e76`
 
 ### Frontend
+
 - إضافة واجهة سحب وإفلات مرئية لإعادة ترتيب مراحل مسار العمل
 - تحديث أرقام المراحل وحفظ الترتيب الجديد عبر API وقاعدة البيانات
 
@@ -379,14 +429,17 @@
 **الـ checkpoint:** `b493e22`
 
 ### قاعدة البيانات
+
 - إضافة جداول: `workflow_templates`، `workflow_phases`، `access_roles`، `role_permissions`
 - Seed آمن للبيانات الحالية
 
 ### Backend (server)
+
 - إضافة `workflowRouter`: CRUD كامل للـ workflows والمراحل
 - إضافة `accessControlRouter` (نسخة أولية): `model`
 
 ### Frontend
+
 - ربط Workflow Studio بالـ APIs بدلاً من mockData
 - إضافة حالات تحميل، حفظ، أخطاء، وتنبيهات نجاح
 
@@ -397,6 +450,7 @@
 **الـ checkpoint:** `a6d0ba0`
 
 ### Frontend (الإطار الأساسي)
+
 - تصميم Industrial Command Center Minimalism
 - `AppShell.tsx`: الإطار الرئيسي مع sidebar، header، theme toggle
 - `Dashboard.tsx`: لوحة التحكم الرئيسية
@@ -410,16 +464,17 @@
 
 ## ملاحظات للمهندسين
 
-| الملف | الوصف | الموقع |
-|-------|-------|--------|
-| `drizzle/schema.ts` | تعريف جميع جداول قاعدة البيانات | نقطة البداية لأي تعديل في البيانات |
-| `server/db.ts` | جميع helpers للتعامل مع قاعدة البيانات | يحتوي على 1,900+ سطر — مرشح للتقسيم |
-| `server/routers.ts` | جميع tRPC procedures | يحتوي على 6 routers في ملف واحد |
-| `client/src/lib/mockData.ts` | بيانات ثابتة للـ navItems وcatalogs | لا يزال يُستخدم لـ navItems وpermissionGroups |
-| `client/src/pages/` | جميع صفحات التطبيق | 12 صفحة |
-| `client/src/components/layout/AppShell.tsx` | الإطار الرئيسي مع auth guard | يحتوي على منطق المصادقة والتوجيه |
+| الملف                                       | الوصف                                  | الموقع                                        |
+| ------------------------------------------- | -------------------------------------- | --------------------------------------------- |
+| `drizzle/schema.ts`                         | تعريف جميع جداول قاعدة البيانات        | نقطة البداية لأي تعديل في البيانات            |
+| `server/db.ts`                              | جميع helpers للتعامل مع قاعدة البيانات | يحتوي على 1,900+ سطر — مرشح للتقسيم           |
+| `server/routers.ts`                         | جميع tRPC procedures                   | يحتوي على 6 routers في ملف واحد               |
+| `client/src/lib/mockData.ts`                | بيانات ثابتة للـ navItems وcatalogs    | لا يزال يُستخدم لـ navItems وpermissionGroups |
+| `client/src/pages/`                         | جميع صفحات التطبيق                     | 12 صفحة                                       |
+| `client/src/components/layout/AppShell.tsx` | الإطار الرئيسي مع auth guard           | يحتوي على منطق المصادقة والتوجيه              |
 
 ### سير المصادقة الحالي
+
 ```
 مستخدم جديد
   → تسجيل دخول OAuth (/login)
@@ -436,6 +491,7 @@
 ## 2.0.0-beta.4 — Sprint 4: Certificate and Quality Governance
 
 ### Added
+
 - Immutable, SHA-256 hashed certificate snapshots with controlled issue, reissue, supersede and revocation history.
 - Data-minimized public certificate verification route and printable verification page.
 - Defect Notification, Punch Item and NDT records with optimistic concurrency and independent review controls.
@@ -448,6 +504,7 @@
 - Arabic Local and Railway deployment guide and staging UAT checklist.
 
 ### Changed
+
 - Certificate public verification no longer exposes the controlled raw snapshot, permits, LOTO, gas readings, evidence links or internal user IDs.
 - NDT acceptance is evaluated against the related defect rather than a global NDT count.
 - Certificate issuance requires the configured workflow, leak-test, final-approval and quality gates.
@@ -455,6 +512,7 @@
 - Production server validates critical environment variables and binds to Railway's dynamic port on `0.0.0.0`.
 
 ### Fixed
+
 - Date normalization now occurs before generic object normalization when calculating certificate snapshot hashes.
 - Quality review actions cannot be triggered during React render.
 - Defect, punch and NDT review paths reject stale record versions and self-approval where independence is required.

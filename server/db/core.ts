@@ -33,9 +33,35 @@ export async function getDb() {
 export async function requireDb() {
   const db = await getDb();
   if (!db) {
-    throw new Error("Database is not available. Verify DATABASE_URL before using workflow persistence.");
+    throw new Error(
+      "Database is not available. Verify DATABASE_URL before using workflow persistence."
+    );
   }
   return db;
+}
+
+/**
+ * Close the lazily-created Drizzle/MySQL pool used by standalone CLI tasks.
+ *
+ * The long-running application server intentionally leaves this pool open.
+ * Pre-deploy scripts must call this function in `finally`, otherwise Node keeps
+ * the MySQL sockets alive after the task has printed its success message and
+ * Railway waits until the pre-deploy command times out.
+ */
+export async function closeDb(): Promise<void> {
+  const db = _db;
+  _db = null;
+  if (!db) return;
+
+  await new Promise<void>((resolve, reject) => {
+    db.$client.end(error => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -94,6 +120,10 @@ export async function getUserByOpenId(openId: string) {
     console.warn("[Database] Cannot get user: database not available");
     return undefined;
   }
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }

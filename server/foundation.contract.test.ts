@@ -25,7 +25,6 @@ describe("SBTS 2.2 foundational contracts", () => {
     }
   });
 
-
   it("keeps database query paths read-only", () => {
     const certificate = read("server/db/certificateGovernance.ts");
     const inspection = read("server/db/inspectionActivities.ts");
@@ -33,18 +32,18 @@ describe("SBTS 2.2 foundational contracts", () => {
     const toggles = read("server/db/featureToggles.ts");
 
     expect(certificate).not.toContain(
-      "getCertificateReadiness(projectId: string, blindTag: string) {\n  await ensureBlindWorkflowRuntime",
+      "getCertificateReadiness(projectId: string, blindTag: string) {\n  await ensureBlindWorkflowRuntime"
     );
     expect(inspection).not.toContain(
-      "getBlindInspectionActivities(input: { projectId: string; blindTag: string }, actor: ActingProjectUser) {\n  await ensureBlindWorkflowRuntime",
+      "getBlindInspectionActivities(input: { projectId: string; blindTag: string }, actor: ActingProjectUser) {\n  await ensureBlindWorkflowRuntime"
     );
     expect(quality).not.toContain(
-      "getQualityRecords(input: { projectId: string; blindTag: string }, actor: ActingProjectUser) {\n  await ensureBlindWorkflowRuntime",
+      "getQualityRecords(input: { projectId: string; blindTag: string }, actor: ActingProjectUser) {\n  await ensureBlindWorkflowRuntime"
     );
 
     const toggleReadBody = toggles.slice(
       toggles.indexOf("export async function getFeatureToggles"),
-      toggles.indexOf("export async function updateFeatureToggles"),
+      toggles.indexOf("export async function updateFeatureToggles")
     );
     expect(toggleReadBody).not.toContain("db.insert");
   });
@@ -64,11 +63,11 @@ describe("SBTS 2.2 foundational contracts", () => {
 
     const projectsSchema = schema.slice(
       schema.indexOf('export const projects = mysqlTable("projects"'),
-      schema.indexOf("export const blinds = mysqlTable"),
+      schema.indexOf("export const blinds = mysqlTable")
     );
     const projectsContract = schemaContract.slice(
       schemaContract.indexOf("  projects: ["),
-      schemaContract.indexOf("  blinds: ["),
+      schemaContract.indexOf("  blinds: [")
     );
 
     expect(projectsSchema).toContain("status: projectStatusEnum");
@@ -77,11 +76,32 @@ describe("SBTS 2.2 foundational contracts", () => {
     expect(projectsContract).not.toContain('"status"');
   });
 
+  it("closes the shared database pool after standalone pre-deploy tasks", () => {
+    const core = read("server/db/core.ts");
+    expect(core).toContain("export async function closeDb");
+    expect(core).toContain("db.$client.end");
+
+    for (const file of [
+      "scripts/seed-system-data.ts",
+      "scripts/create-admin.ts",
+      "scripts/backfill-workflow-runtime.ts",
+      "scripts/seed-demo-data.ts",
+    ]) {
+      const script = read(file);
+      expect(script).toContain("closeDb");
+      expect(script).toContain("await closeDb()");
+      expect(script).toContain("finally");
+      expect(script).not.toContain("process.exit(1)");
+    }
+  });
+
   it("provides real Area and Project creation forms", () => {
     const areasPage = read("client/src/pages/Areas.tsx");
     const projectsPage = read("client/src/pages/Projects.tsx");
     const areaDialog = read("client/src/components/areas/CreateAreaDialog.tsx");
-    const projectDialog = read("client/src/components/projects/CreateProjectDialog.tsx");
+    const projectDialog = read(
+      "client/src/components/projects/CreateProjectDialog.tsx"
+    );
 
     expect(areasPage).toContain("CreateAreaDialog");
     expect(projectsPage).toContain("CreateProjectDialog");
@@ -112,11 +132,11 @@ describe("SBTS 2.2 foundational contracts", () => {
     const workflow = read(".github/workflows/ci.yml");
     expect(workflow.indexOf("pnpm/action-setup")).toBeGreaterThanOrEqual(0);
     expect(workflow.indexOf("pnpm/action-setup")).toBeLessThan(
-      workflow.indexOf("actions/setup-node"),
+      workflow.indexOf("actions/setup-node")
     );
     const pnpmSetupBlock = workflow.slice(
       workflow.indexOf("- name: Setup pnpm"),
-      workflow.indexOf("- name: Setup Node.js"),
+      workflow.indexOf("- name: Setup Node.js")
     );
     expect(pnpmSetupBlock).toContain("run_install: false");
     expect(pnpmSetupBlock).not.toMatch(/^\s+version:/m);
@@ -126,7 +146,7 @@ describe("SBTS 2.2 foundational contracts", () => {
     const specification = read("shared/workflowSpecification.ts");
     const blindDetail = read("client/src/pages/BlindDetailHub.tsx");
     expect(specification).toContain(
-      "as const satisfies readonly CanonicalWorkflowPhase[]",
+      "as const satisfies readonly CanonicalWorkflowPhase[]"
     );
     expect(blindDetail).not.toContain("as WorkflowActionKey");
     expect(blindDetail).toContain("actionKey: runtime.currentPhase.actionKey");
@@ -148,16 +168,15 @@ describe("SBTS 2.2 foundational contracts", () => {
     const projectsDb = read("server/db/projects.ts");
     const getAreasBody = projectsDb.slice(
       projectsDb.indexOf("export async function getAreas"),
-      projectsDb.indexOf("export async function getAreaById"),
+      projectsDb.indexOf("export async function getAreaById")
     );
     const createAreaBody = projectsDb.slice(
       projectsDb.indexOf("export async function createArea"),
-      projectsDb.indexOf("// ─── Project Queries"),
+      projectsDb.indexOf("// ─── Project Queries")
     );
     expect(getAreasBody).toContain("db.select().from(areas)");
     expect(getAreasBody).not.toContain("db.insert");
     expect(getAreasBody).not.toContain("seedAreasAndProjects");
     expect(createAreaBody).toContain("db.insert(areas)");
   });
-
 });

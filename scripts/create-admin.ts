@@ -6,16 +6,21 @@ import {
   getUserByEmail,
   updateUserPassword,
 } from "../server/db/auth";
-import { requireDb } from "../server/db/core";
+import { closeDb, requireDb } from "../server/db/core";
 import { seedSystemReferenceData } from "../server/db/seed";
 
 function requireStrongPassword(password: string) {
   if (password.length < 12) {
     throw new Error("ADMIN_PASSWORD must be at least 12 characters.");
   }
-  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+  if (
+    !/[A-Z]/.test(password) ||
+    !/[a-z]/.test(password) ||
+    !/[0-9]/.test(password) ||
+    !/[^A-Za-z0-9]/.test(password)
+  ) {
     throw new Error(
-      "ADMIN_PASSWORD must contain uppercase, lowercase, number, and special character.",
+      "ADMIN_PASSWORD must contain uppercase, lowercase, number, and special character."
     );
   }
 }
@@ -29,7 +34,7 @@ async function main() {
 
   if (!email || !password) {
     throw new Error(
-      "Set ADMIN_EMAIL and ADMIN_PASSWORD before running pnpm admin:create.",
+      "Set ADMIN_EMAIL and ADMIN_PASSWORD before running pnpm admin:create."
     );
   }
   requireStrongPassword(password);
@@ -59,7 +64,7 @@ async function main() {
       .where(eq(users.openId, existing.openId));
 
     console.log(
-      `ADMIN_BOOTSTRAP_RESET_OK email=${email} commit=${process.env.RAILWAY_GIT_COMMIT_SHA ?? "local"}`,
+      `ADMIN_BOOTSTRAP_RESET_OK email=${email} commit=${process.env.RAILWAY_GIT_COMMIT_SHA ?? "local"}`
     );
     return;
   }
@@ -77,14 +82,30 @@ async function main() {
   });
 
   console.log(
-    `ADMIN_BOOTSTRAP_CREATED_OK email=${email} commit=${process.env.RAILWAY_GIT_COMMIT_SHA ?? "local"}`,
+    `ADMIN_BOOTSTRAP_CREATED_OK email=${email} commit=${process.env.RAILWAY_GIT_COMMIT_SHA ?? "local"}`
   );
 }
 
-main().catch((error) => {
-  console.error(
-    "ADMIN_BOOTSTRAP_FAILED:",
-    error instanceof Error ? error.message : error,
-  );
-  process.exit(1);
-});
+async function run() {
+  try {
+    await main();
+  } catch (error) {
+    console.error(
+      "ADMIN_BOOTSTRAP_FAILED:",
+      error instanceof Error ? error.message : error
+    );
+    process.exitCode = 1;
+  } finally {
+    try {
+      await closeDb();
+    } catch (error) {
+      console.error(
+        "SBTS_DATABASE_CLOSE_FAILED:",
+        error instanceof Error ? error.message : error
+      );
+      process.exitCode = 1;
+    }
+  }
+}
+
+void run();
