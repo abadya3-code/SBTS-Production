@@ -94,6 +94,12 @@ describe("SBTS 2.2 foundational contracts", () => {
     expect(workflow.indexOf("pnpm/action-setup")).toBeLessThan(
       workflow.indexOf("actions/setup-node"),
     );
+    const pnpmSetupBlock = workflow.slice(
+      workflow.indexOf("- name: Setup pnpm"),
+      workflow.indexOf("- name: Setup Node.js"),
+    );
+    expect(pnpmSetupBlock).toContain("run_install: false");
+    expect(pnpmSetupBlock).not.toMatch(/^\s+version:/m);
   });
 
   it("keeps workflow action keys literal across UI, runtime and tRPC", () => {

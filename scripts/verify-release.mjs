@@ -288,6 +288,16 @@ const nodeSetupIndex = ciWorkflow.indexOf("actions/setup-node");
 if (pnpmSetupIndex < 0 || nodeSetupIndex < 0 || pnpmSetupIndex > nodeSetupIndex) {
   failures.push("GitHub Actions must install pnpm before setup-node enables the pnpm cache.");
 }
+const pnpmSetupBlock = ciWorkflow.slice(
+  ciWorkflow.indexOf("- name: Setup pnpm"),
+  ciWorkflow.indexOf("- name: Setup Node.js"),
+);
+if (/^\s+version:/m.test(pnpmSetupBlock)) {
+  failures.push("GitHub Actions must obtain pnpm from package.json packageManager; declaring a second version causes ERR_PNPM_BAD_PM_VERSION.");
+}
+if (!pnpmSetupBlock.includes("run_install: false")) {
+  failures.push("GitHub Actions must keep dependency installation in the explicit frozen-lockfile step.");
+}
 
 const result = {
   version: packageJson.version,

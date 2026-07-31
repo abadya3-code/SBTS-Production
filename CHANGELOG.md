@@ -2,6 +2,8 @@
 
 ## 2.2.2 — Sprint 5 Recovery Release Candidate
 
+- Removed the duplicate pnpm version from GitHub Actions; CI now reads the
+  single pinned version from `package.json#packageManager`.
 - Fixed clean-clone publishing by installing frozen dependencies inside
   `02_PUSH_UPDATE.ps1` before validation.
 - Kept `.github/workflows/ci.yml` in the Docker build context because release
