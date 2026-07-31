@@ -1,5 +1,14 @@
 # CHANGELOG — SBTS Professional Edition
 
+## 2.2.2 — Sprint 5 Recovery RC6
+
+- Fixed production startup resolving Vite's source-root `package.json` as
+  `/app/dist/package.json` after the server bundle moved `import.meta.dirname`.
+- Made Vite and `vite.config.ts` development-only dynamic imports and sourced
+  the client release version from the immutable server release constant.
+- Added regression coverage that prevents source-only Vite configuration from
+  being evaluated during production startup.
+
 ## 2.2.2 — Sprint 5 Recovery RC5
 
 - Fixed Railway pre-deploy commands remaining alive after successful database

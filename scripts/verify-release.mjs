@@ -38,6 +38,7 @@ const required = [
   "SBTS_2.2.2_SPRINT5_RECOVERY_REPORT_AR.md",
   "SBTS_2.2.2_RC4_SCHEMA_CONTRACT_HOTFIX_AR.md",
   "SBTS_2.2.2_RC5_PREDEPLOY_EXIT_HOTFIX_AR.md",
+  "SBTS_2.2.2_RC6_PRODUCTION_STARTUP_HOTFIX_AR.md",
   "patches/wouter@3.7.1.patch",
 ];
 

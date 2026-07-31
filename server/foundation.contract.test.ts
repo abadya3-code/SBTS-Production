@@ -95,6 +95,25 @@ describe("SBTS 2.2 foundational contracts", () => {
     }
   });
 
+  it("keeps development-only Vite config out of production startup", () => {
+    const viteRuntime = read("server/_core/vite.ts");
+    const viteConfig = read("vite.config.ts");
+
+    expect(viteRuntime).toContain('import("vite")');
+    expect(viteRuntime).toContain('import("../../vite.config")');
+    expect(viteRuntime).not.toContain(
+      'import { createServer as createViteServer } from "vite"'
+    );
+    expect(viteRuntime).not.toContain(
+      'import viteConfig from "../../vite.config"'
+    );
+    expect(viteConfig).toContain(
+      'import { RELEASE_VERSION } from "./server/_core/release"'
+    );
+    expect(viteConfig).not.toContain("readFileSync");
+    expect(viteConfig).not.toContain('"package.json"');
+  });
+
   it("provides real Area and Project creation forms", () => {
     const areasPage = read("client/src/pages/Areas.tsx");
     const projectsPage = read("client/src/pages/Projects.tsx");

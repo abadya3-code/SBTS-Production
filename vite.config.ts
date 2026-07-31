@@ -1,22 +1,19 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vite";
+import { RELEASE_VERSION } from "./server/_core/release";
 
 const PROJECT_ROOT = import.meta.dirname;
-const packageJson = JSON.parse(
-  fs.readFileSync(path.join(PROJECT_ROOT, "package.json"), "utf8"),
-) as { version: string };
 const releaseCommit =
-  process.env.RAILWAY_GIT_COMMIT_SHA?.trim()
-  || process.env.GIT_COMMIT_SHA?.trim()
-  || "local";
+  process.env.RAILWAY_GIT_COMMIT_SHA?.trim() ||
+  process.env.GIT_COMMIT_SHA?.trim() ||
+  "local";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   define: {
-    __SBTS_RELEASE_VERSION__: JSON.stringify(packageJson.version),
+    __SBTS_RELEASE_VERSION__: JSON.stringify(RELEASE_VERSION),
     __SBTS_RELEASE_COMMIT__: JSON.stringify(releaseCommit),
   },
   resolve: {
