@@ -8,7 +8,7 @@ const requiredColumns: Record<string, string[]> = {
     "createdAt", "updatedAt",
   ],
   projects: [
-    "id", "name", "areaId", "status", "blindsCount", "progress",
+    "id", "name", "areaId", "projectStatus", "blindsCount", "progress",
     "description", "createdAt", "updatedAt",
   ],
   blinds: [

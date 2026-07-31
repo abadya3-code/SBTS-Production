@@ -1,5 +1,14 @@
 # CHANGELOG — SBTS Professional Edition
 
+## 2.2.2 — Sprint 5 Recovery RC4
+
+- Corrected the hosted MySQL schema contract to validate the physical
+  `projects.projectStatus` column used by the original migration and current
+  Drizzle mapping, instead of incorrectly requiring a duplicate `status`
+  column.
+- Added a regression contract that keeps the Drizzle property alias, physical
+  database column, and deployment validator aligned.
+
 ## 2.2.2 — Sprint 5 Recovery Release Candidate
 
 - Removed the duplicate pnpm version from GitHub Actions; CI now reads the

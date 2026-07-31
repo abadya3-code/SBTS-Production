@@ -57,6 +57,26 @@ describe("SBTS 2.2 foundational contracts", () => {
     expect(migrationRunner).toContain("ALTER TABLE \\`blinds\\` ADD COLUMN");
   });
 
+  it("validates the physical projects.projectStatus column", () => {
+    const schema = read("drizzle/schema.ts");
+    const initialProjectMigration = read("drizzle/0003_silly_vengeance.sql");
+    const schemaContract = read("scripts/verify-schema-contract.ts");
+
+    const projectsSchema = schema.slice(
+      schema.indexOf('export const projects = mysqlTable("projects"'),
+      schema.indexOf("export const blinds = mysqlTable"),
+    );
+    const projectsContract = schemaContract.slice(
+      schemaContract.indexOf("  projects: ["),
+      schemaContract.indexOf("  blinds: ["),
+    );
+
+    expect(projectsSchema).toContain("status: projectStatusEnum");
+    expect(initialProjectMigration).toContain("`projectStatus`");
+    expect(projectsContract).toContain('"projectStatus"');
+    expect(projectsContract).not.toContain('"status"');
+  });
+
   it("provides real Area and Project creation forms", () => {
     const areasPage = read("client/src/pages/Areas.tsx");
     const projectsPage = read("client/src/pages/Projects.tsx");
