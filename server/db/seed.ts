@@ -287,17 +287,14 @@ export async function seedAreasAndProjects(): Promise<void> {
 
 export async function seedAccessControl(): Promise<void> {
   const db = await requireDb();
-  const [existingPermissionRows, existingRoleRows, existingAssignments] = await Promise.all([
-    db.select({ key: accessPermissions.key }).from(accessPermissions),
+  const [existingRoleRows, existingAssignments] = await Promise.all([
     db.select({ key: accessRoles.key }).from(accessRoles),
     db.select({ roleKey: accessRolePermissions.roleKey, permissionKey: accessRolePermissions.permissionKey }).from(accessRolePermissions),
   ]);
-  const existingPermissionKeys = new Set(existingPermissionRows.map((row) => row.key));
   const existingRoleKeys = new Set(existingRoleRows.map((row) => row.key));
   const existingAssignmentKeys = new Set(existingAssignments.map((row) => `${row.roleKey}:${row.permissionKey}`));
   const now = new Date();
   const permissions = seedPermissionGroups.flatMap((group) => group.permissions);
-  const missingPermissions = permissions.filter((permission) => !existingPermissionKeys.has(permission.key));
   const missingRoles = seedRoles.filter((role) => !existingRoleKeys.has(role.key));
   const missingAssignments = seedRoles.flatMap((role) =>
     role.permissionKeys
@@ -305,12 +302,21 @@ export async function seedAccessControl(): Promise<void> {
       .map((permissionKey) => ({ roleKey: role.key, permissionKey, createdAt: now })),
   );
 
-  if (missingPermissions.length === 0 && missingRoles.length === 0 && missingAssignments.length === 0) return;
   await db.transaction(async (tx) => {
-    if (missingPermissions.length > 0) {
-      await tx.insert(accessPermissions).values(
-        missingPermissions.map((permission) => ({ ...permission, createdAt: now, updatedAt: now })),
-      );
+    // Permission labels and descriptions are system-owned reference metadata.
+    // Refresh them on every release without replacing custom role assignments.
+    for (const permission of permissions) {
+      await tx
+        .insert(accessPermissions)
+        .values({ ...permission, createdAt: now, updatedAt: now })
+        .onDuplicateKeyUpdate({
+          set: {
+            label: permission.label,
+            description: permission.description,
+            group: permission.group,
+            updatedAt: now,
+          },
+        });
     }
     if (missingRoles.length > 0) {
       await tx.insert(accessRoles).values(
@@ -341,7 +347,11 @@ export async function seedWorkflows(): Promise<void> {
   // Lazy import to avoid circular dependency with workflows.ts
   const { upsertWorkflow } = await import("./workflows");
   for (const workflow of seedWorkflowTemplates) {
-    if (!existingIds.has(workflow.id)) await upsertWorkflow(workflow, "system-seed");
+    // The canonical lifecycle is application-owned and must track the source
+    // release. Optional legacy templates remain administrator-customizable.
+    if (workflow.id === "wf-sbts-standard-v2" || !existingIds.has(workflow.id)) {
+      await upsertWorkflow(workflow, "system-seed");
+    }
   }
 }
 

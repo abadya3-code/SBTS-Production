@@ -11,8 +11,11 @@ const required = [
   "railway.json",
   ".env.example",
   "README.md",
+  "VERSION",
   "client/index.html",
   "server/_core/index.ts",
+  "server/_core/release.ts",
+  "server/_core/authUser.ts",
   "server/_core/databaseUrl.ts",
   "drizzle/schema.ts",
   "drizzle/0017_sprint5_auth_deployment_hardening.sql",
@@ -23,12 +26,16 @@ const required = [
   "scripts/backfill-workflow-runtime.ts",
   "scripts/verify-schema-contract.ts",
   "scripts/validate-deployment-env.ts",
+  "scripts/verify-deployment.mjs",
+  "scripts/verify-publish.mjs",
+  "scripts/db-push-disabled.mjs",
   "scripts/production-doctor.ts",
   "scripts/sprint5-sql-validate.mjs",
   "server/foundation.contract.test.ts",
   "SBTS_2.2_FOUNDATION_RELEASE_AR.md",
   "SBTS_2.2_FOUNDATION_VERIFICATION.txt",
   "SBTS_2.2.1_STABILIZATION_REPORT_AR.md",
+  "SBTS_2.2.2_SPRINT5_RECOVERY_REPORT_AR.md",
   "patches/wouter@3.7.1.patch",
 ];
 
@@ -64,6 +71,20 @@ if (fs.existsSync(path.join(root, "client/public/__manus__"))) {
 }
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+const versionFile = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
+const releaseSource = fs.readFileSync(path.join(root, "server/_core/release.ts"), "utf8");
+if (versionFile !== packageJson.version) {
+  failures.push(`VERSION=${versionFile} does not match package.json=${packageJson.version}.`);
+}
+if (!releaseSource.includes(`RELEASE_VERSION = "${packageJson.version}"`)) {
+  failures.push("The bundled server release version does not match package.json.");
+}
+if (packageJson.scripts?.["db:push"] !== "node scripts/db-push-disabled.mjs") {
+  failures.push("db:push must remain disabled until the Drizzle and domain migration histories are unified.");
+}
+if (packageJson.scripts?.baseline !== "node scripts/sprint0-baseline.mjs") {
+  failures.push("baseline must be a read-only verification command.");
+}
 if (packageJson.scripts?.["db:migrate"] !== "pnpm db:migrate:drizzle && pnpm db:migrate:domain") {
   failures.push("db:migrate must execute both Drizzle and SBTS domain migrations.");
 }
@@ -79,8 +100,8 @@ if (!packageJson.scripts?.["railway:predeploy"]?.includes("pnpm schema:contract"
 if (!packageJson.scripts?.["railway:predeploy"]?.includes("pnpm system:seed")) {
   failures.push("railway:predeploy must install system reference data explicitly.");
 }
-if (!packageJson.scripts?.["railway:predeploy"]?.includes("pnpm workflow:backfill")) {
-  failures.push("railway:predeploy must backfill canonical workflow runtime records.");
+if (!packageJson.scripts?.["railway:predeploy"]?.includes("RUN_WORKFLOW_BACKFILL_ON_DEPLOY")) {
+  failures.push("railway:predeploy must make the potentially expensive workflow backfill explicit.");
 }
 if (packageJson.scripts?.["railway:predeploy"]?.includes("pnpm data:seed")) {
   failures.push("Demo data must never run automatically during Railway pre-deploy.");
@@ -98,7 +119,7 @@ for (const dependency of ["@tailwindcss/oxide", "esbuild"]) {
 
 const railway = JSON.parse(fs.readFileSync(path.join(root, "railway.json"), "utf8"));
 if (railway.build?.builder !== "DOCKERFILE") failures.push("Railway must use the repository Dockerfile.");
-if (railway.deploy?.healthcheckPath !== "/health") failures.push("Railway healthcheckPath must be /health.");
+if (railway.deploy?.healthcheckPath !== "/ready") failures.push("Railway healthcheckPath must verify database readiness at /ready.");
 if (!String(railway.deploy?.preDeployCommand ?? "").includes("pnpm railway:predeploy")) {
   failures.push("Railway pre-deploy must run the controlled migration/bootstrap script.");
 }
@@ -111,10 +132,43 @@ if (!dockerfile.includes("pnpm install --frozen-lockfile --prod=false")) {
   failures.push("Dockerfile must install all build/predeploy dependencies with the frozen pnpm lockfile.");
 }
 if (!dockerfile.includes("USER node")) failures.push("Dockerfile must run the application as a non-root user.");
+if (!dockerfile.includes("/ready")) failures.push("Dockerfile healthcheck must verify database readiness at /ready.");
+
+const dockerignore = fs.readFileSync(path.join(root, ".dockerignore"), "utf8");
+if (/^\s*\.github\/?\s*$/m.test(dockerignore)) {
+  failures.push(".github must remain in the Docker build context because release and test contracts inspect the CI workflow.");
+}
+
+const pushUpdateScript = fs.readFileSync(path.join(root, "02_PUSH_UPDATE.ps1"), "utf8");
+const installIndex = pushUpdateScript.indexOf("pnpm install --frozen-lockfile");
+const publishIndex = pushUpdateScript.indexOf("pnpm publish:check");
+if (installIndex < 0 || publishIndex < 0 || installIndex > publishIndex) {
+  failures.push("02_PUSH_UPDATE.ps1 must install locked dependencies before running the publish gate.");
+}
 
 const gitignore = fs.readFileSync(path.join(root, ".gitignore"), "utf8");
 if (!/^\.env$/m.test(gitignore)) failures.push(".gitignore must ignore .env.");
 if (!/(?:^|\n)(?:\*\*\/)?node_modules\/?(?:\n|$)/m.test(gitignore)) failures.push(".gitignore must ignore node_modules.");
+
+for (const removedDependency of ["xlsx", "streamdown", "axios", "vite-plugin-manus-runtime"]) {
+  if (packageJson.dependencies?.[removedDependency] || packageJson.devDependencies?.[removedDependency]) {
+    failures.push(`${removedDependency} must not be present in the production dependency graph.`);
+  }
+}
+if (!packageJson.dependencies?.fflate) failures.push("Excel exports must use the small audited fflate OOXML adapter.");
+if (packageJson.scripts?.["audit:prod"] !== "pnpm audit --prod"
+  || !packageJson.scripts?.["foundation:check"]?.includes("pnpm audit:prod")) {
+  failures.push("The publish gate must fail when the production dependency audit reports a vulnerability.");
+}
+for (const [dependency, version] of Object.entries({
+  qs: "6.15.2",
+  dompurify: "3.4.12",
+  "express>body-parser": "1.20.6",
+})) {
+  if (packageJson.pnpm?.overrides?.[dependency] !== version) {
+    failures.push(`Security override ${dependency} must remain pinned to ${version}.`);
+  }
+}
 
 
 const areasPage = fs.readFileSync(path.join(root, "client/src/pages/Areas.tsx"), "utf8");
@@ -160,6 +214,34 @@ if (!themeContext.includes('THEME_STORAGE_KEY = "sbts-theme-v2"')) {
 }
 if (!themeToggle.includes("trpc.profile.updateTheme.useMutation")) {
   failures.push("Quick theme changes must persist to the authenticated profile.");
+}
+
+const authRouter = fs.readFileSync(path.join(root, "server/routers/auth.ts"), "utf8");
+if (authRouter.includes("opts.ctx.user ?? null")) {
+  failures.push("auth.me must never return the raw database user row.");
+}
+if (!authRouter.includes("toAuthUser")) failures.push("Authentication routes must use the safe AuthUser DTO.");
+
+const dashboard = fs.readFileSync(path.join(root, "client/src/pages/Dashboard.tsx"), "utf8");
+if (dashboard.includes('@/lib/mockData') || dashboard.includes('Representative registry view')) {
+  failures.push("Dashboard must use the canonical database snapshot, not mock data.");
+}
+if (!dashboard.includes("trpc.reports.dashboardSnapshot")) {
+  failures.push("Dashboard is not connected to the canonical runtime snapshot.");
+}
+
+if (fs.existsSync(path.join(root, "client/src/lib/mockData.ts"))) {
+  failures.push("The legacy frontend mock-data catalog must not ship in the recovery release.");
+}
+const accessControlPage = fs.readFileSync(path.join(root, "client/src/pages/AccessControl.tsx"), "utf8");
+if (!accessControlPage.includes("trpc.accessControl.model.useQuery")
+  || !accessControlPage.includes("trpc.accessControl.updateRoles.useMutation")) {
+  failures.push("Access Control must read and persist the database-backed RBAC model.");
+}
+
+const storageProxy = fs.readFileSync(path.join(root, "server/_core/storageProxy.ts"), "utf8");
+if (!storageProxy.includes("sdk.authenticateRequest(req)")) {
+  failures.push("Storage redirects must require an authenticated session.");
 }
 
 

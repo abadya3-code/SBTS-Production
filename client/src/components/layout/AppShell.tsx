@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { appMeta, navItems, secondaryNavItems } from "@/lib/mockData";
+import { appMeta, navItems, secondaryNavItems } from "@/lib/domainCatalog";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -25,6 +25,22 @@ import { trpc } from "@/lib/trpc";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { THEME_STORAGE_KEY, normalizeThemeId, useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
+import { releaseVersion, shortReleaseCommit } from "@/lib/release";
+
+const navPermissionByKey: Record<string, string | null> = {
+  dashboard: null,
+  areas: "projects.view",
+  projects: "projects.view",
+  "isolation-packages": "workflow.package.manage",
+  blinds: "blinds.view",
+  "workflow-studio": "workflow.configure",
+  "access-control": "roles.manage",
+  users: "users.view",
+  settings: "admin",
+  notifications: null,
+  reports: "reports.view",
+  audit: "audit.view",
+};
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -54,8 +70,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Load dynamic settings
   const { data: generalSettings } = trpc.settings.general.get.useQuery();
   const dynamicAppName = (generalSettings as any)?.appName || appMeta.title;
-  const dynamicVersion = (generalSettings as any)?.versionName || appMeta.version;
+  const configuredEdition = String((generalSettings as any)?.versionName || "Professional Edition");
+  const dynamicEdition = /(?:v?1\.0|react frontend alpha)/i.test(configuredEdition)
+    ? "Professional Edition"
+    : configuredEdition;
   const dynamicCompanyName = (generalSettings as any)?.companyName || appMeta.site;
+
+  const { data: myAccess } = trpc.accessControl.myAccess.useQuery(undefined, {
+    enabled: !loading && !!user,
+    refetchOnWindowFocus: false,
+  });
+  const canSeeNavItem = (key: string) => {
+    if (user?.role === "admin") return true;
+    const required = navPermissionByKey[key];
+    if (required == null) return true;
+    if (required === "admin") return false;
+    return myAccess?.permissionKeys.includes(required) ?? false;
+  };
+  const visibleNavItems = navItems.filter((item) => canSeeNavItem(item.key));
+  const visibleSecondaryNavItems = secondaryNavItems.filter((item) => canSeeNavItem(item.key));
 
   // Auth guard
   useEffect(() => {
@@ -177,7 +210,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 color: "var(--sidebar-primary)",
               }}
             >
-              {dynamicVersion}
+              v{releaseVersion}
             </span>
             {/* Mobile close */}
             <button
@@ -202,7 +235,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               Command
             </p>
             <nav className="space-y-0.5">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const active =
                   location === item.path ||
@@ -275,7 +308,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               Next Modules
             </p>
             <div className="space-y-0.5">
-              {secondaryNavItems.map((item) => {
+              {visibleSecondaryNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location === item.path;
                 return (
@@ -396,14 +429,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                     color: "var(--primary)",
                   }}
                 >
-                  {dynamicVersion}
+                  v{releaseVersion}
                 </span>
               </div>
               <p
                 className="mt-0.5 truncate text-xs font-medium opacity-55"
                 style={{ color: "var(--foreground)" }}
               >
-                {dynamicCompanyName} · {appMeta.subtitle}
+                {dynamicCompanyName} · {dynamicEdition} · build {shortReleaseCommit}
               </p>
             </div>
 

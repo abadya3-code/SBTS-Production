@@ -8,12 +8,12 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getUserProfile, updateUserAvatar, updateUserProfile } from "../db/profile";
-import { getUserByEmail, hashPassword, verifyPassword } from "../db/auth";
 import { requireDb } from "../db/core";
-import { users, blindWorkflowLogs, blindPhaseApprovals, blinds, projects } from "../../drizzle/schema";
-import { eq, desc, or, and } from "drizzle-orm";
+import { blindWorkflowLogs, blindPhaseApprovals, projects } from "../../drizzle/schema";
+import { eq, desc } from "drizzle-orm";
 import { storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
+import { normalizeThemePreference } from "../_core/themePreference";
 
 export const profileRouter = router({
   // ─── Get current user's profile ─────────────────────────────────────────
@@ -47,7 +47,7 @@ export const profileRouter = router({
     // Accepts new ThemeId values (standard | modern | manus) plus legacy (light | dark | system)
     .input(z.object({ theme: z.enum(["standard", "modern", "manus", "light", "dark", "system"]) }))
     .mutation(async ({ ctx, input }) => {
-      await updateUserProfile(ctx.user.openId, { preferredTheme: input.theme });
+      await updateUserProfile(ctx.user.openId, { preferredTheme: normalizeThemePreference(input.theme) });
       return { success: true };
     }),
 
@@ -75,43 +75,6 @@ export const profileRouter = router({
       const { key: savedKey, url } = await storagePut(key, buffer, input.mimeType);
       await updateUserAvatar(ctx.user.openId, savedKey, url);
       return { avatarUrl: url, avatarKey: savedKey };
-    }),
-
-  // ─── Change password ──────────────────────────────────────────────────────
-  changePassword: protectedProcedure
-    .input(
-      z.object({
-        currentPassword: z.string().min(1),
-        newPassword: z.string().min(8).max(128),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const db = await requireDb();
-      const rows = await db
-        .select()
-        .from(users)
-        .where(eq(users.openId, ctx.user.openId))
-        .limit(1);
-      if (rows.length === 0) throw new TRPCError({ code: "NOT_FOUND" });
-      const user = rows[0];
-
-      // Verify current password
-      if (!user.passwordHash) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "No password set for this account" });
-      }
-      const valid = await verifyPassword(input.currentPassword, user.passwordHash);
-      if (!valid) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect" });
-      }
-
-      // Hash and save new password
-      const newHash = await hashPassword(input.newPassword);
-      await db
-        .update(users)
-        .set({ passwordHash: newHash })
-        .where(eq(users.openId, ctx.user.openId));
-
-      return { success: true };
     }),
 
   // ─── Get activity stats for profile page ─────────────────────────────────

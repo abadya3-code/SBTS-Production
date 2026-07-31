@@ -103,7 +103,7 @@ function ThemeCard({
 
 export default function UserProfile() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { themeId, setTheme, isDarkMode, allowUserThemeOverride } = useTheme();
   const theme = themeId;
 
@@ -169,10 +169,12 @@ export default function UserProfile() {
     onError: (e) => toast.error(e.message),
   });
 
-  const passwordMutation = trpc.profile.changePassword.useMutation({
-    onSuccess: () => {
-      toast.success("Password changed successfully");
+  const passwordMutation = trpc.auth.changePassword.useMutation({
+    onSuccess: async () => {
+      toast.success("Password changed. Sign in again with the new password.");
       setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+      await logout();
+      window.location.href = "/login";
     },
     onError: (e) => toast.error(e.message),
   });
@@ -218,7 +220,7 @@ export default function UserProfile() {
 
   const handleChangePassword = () => {
     if (newPassword !== confirmPassword) { toast.error("New passwords do not match"); return; }
-    if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    if (!newPassword) { toast.error("Enter a new password"); return; }
     passwordMutation.mutate({ currentPassword, newPassword });
   };
 

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Shield, Activity, Eye, Lock, EyeOff, Mail, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { releaseVersion, shortReleaseCommit } from "@/lib/release";
 
 export default function Login() {
   const { user, loading } = useAuth();
@@ -144,7 +145,9 @@ export default function Login() {
 
         {/* Bottom version info */}
         <div className="relative z-10 flex items-center justify-between">
-          <div className="text-xs text-slate-600 tracking-widest uppercase">Professional Edition v1.0</div>
+          <div className="text-xs text-slate-500 tracking-widest uppercase">
+            Professional Edition · v{releaseVersion} · {shortReleaseCommit}
+          </div>
           <div className="flex gap-1">
             {[1, 2, 3].map((i) => (
               <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === 1 ? "bg-cyan-400" : "bg-slate-700"}`} />

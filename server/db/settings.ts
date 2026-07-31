@@ -6,6 +6,7 @@
 
 import { requireDb } from "./core";
 import { certificateSettings, defaultTagSettings, systemSettings, securitySettings, notificationPreferences, workflowPolicySettings } from "../../drizzle/schema";
+import { RELEASE_VERSION } from "../_core/release";
 
 // ─── System Settings ───────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ export async function getSystemSettings() {
       emailNotifications: 1,
       phaseChangeAlerts: 1,
       criticalPriorityAlerts: 1,
-      systemVersion: "1.0.0",
+      systemVersion: RELEASE_VERSION,
       maintenanceMode: 0,
       appName: "SBTS Professional",
       appDescription: null as string | null,
@@ -40,14 +41,21 @@ export async function getSystemSettings() {
       dashboardHeroBadge: "Access-first migration",
       dashboardHeroImageUrl: null as string | null,
       dashboardCtaButtons: null as string | null,
-      versionName: "Professional Edition v1.0",
+      versionName: "Professional Edition",
       versionDate: null as string | null,
       updatedByOpenId: null as string | null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
   }
-  return rows[0];
+  const row = rows[0];
+  return {
+    ...row,
+    systemVersion: RELEASE_VERSION,
+    versionName: /(?:v?1\.0|react frontend alpha)/i.test(row.versionName ?? "")
+      ? "Professional Edition"
+      : row.versionName,
+  };
 }
 
 export async function upsertSystemSettings(

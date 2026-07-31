@@ -5,15 +5,14 @@
  * Provides unified audit trail from workflow logs, approvals, and notifications.
  */
 import { z } from "zod";
-import { router } from "../_core/trpc";
-import { protectedProcedure } from "../_core/trpc";
+import { permissionProcedure, router } from "../_core/trpc";
 import { getAuditLogs, getAuditLogStats } from "../db/auditLogs";
 
 export const auditLogsRouter = router({
   /**
    * Get paginated audit logs with filters
    */
-  list: protectedProcedure
+  list: permissionProcedure("audit.view")
     .input(
       z.object({
         source: z.enum(["workflow", "approval", "notification", "all"]).optional(),
@@ -34,7 +33,7 @@ export const auditLogsRouter = router({
   /**
    * Get audit log statistics
    */
-  stats: protectedProcedure.query(async () => {
+  stats: permissionProcedure("audit.view").query(async () => {
     return getAuditLogStats();
   }),
 });

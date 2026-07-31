@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { getDatabaseUrl } from "../server/_core/databaseUrl";
+import { RELEASE_VERSION } from "../server/_core/release";
 
 const errors: string[] = [];
 const production = process.env.NODE_ENV === "production";
@@ -31,11 +32,19 @@ if (!appId) {
   errors.push("VITE_APP_ID must use 3–64 letters, numbers, hyphens, or underscores.");
 }
 
-const oauthEnabled = ["1", "true", "yes", "on"].includes(
-  (process.env.ENABLE_OAUTH ?? "false").trim().toLowerCase(),
+const isEnabled = (value: string | undefined) => ["1", "true", "yes", "on"].includes(
+  (value ?? "false").trim().toLowerCase(),
 );
-if (oauthEnabled && !process.env.OAUTH_SERVER_URL?.trim()) {
-  errors.push("ENABLE_OAUTH=true requires OAUTH_SERVER_URL.");
+if (isEnabled(process.env.ENABLE_OAUTH)) {
+  errors.push("ENABLE_OAUTH is retired in the standalone SBTS build and must be false or removed.");
+}
+if (isEnabled(process.env.ENABLE_MANUS_RUNTIME)) {
+  errors.push("ENABLE_MANUS_RUNTIME is not allowed in the production SBTS build.");
+}
+
+const legacyAppVersion = process.env.APP_VERSION?.trim();
+if (legacyAppVersion && legacyAppVersion !== RELEASE_VERSION) {
+  errors.push(`APP_VERSION=${legacyAppVersion} is stale. Remove APP_VERSION; release identity is ${RELEASE_VERSION}.`);
 }
 
 const bootstrapEnabled = ["1", "true", "yes", "on"].includes(
@@ -60,15 +69,22 @@ if (bootstrapEnabled) {
   }
 }
 
-const storageRequired = ["1", "true", "yes", "on"].includes(
-  (process.env.STORAGE_REQUIRED ?? "false").trim().toLowerCase(),
-);
-if (storageRequired) {
-  const storageConfigured = Boolean(
-    (process.env.S3_ENDPOINT || process.env.BUILT_IN_FORGE_API_URL)?.trim(),
-  );
-  if (!storageConfigured) {
-    errors.push("STORAGE_REQUIRED=true requires an S3-compatible or Forge storage backend.");
+const storageRequired = production || isEnabled(process.env.STORAGE_REQUIRED);
+const storageBackend = process.env.STORAGE_BACKEND?.trim().toLowerCase() ?? "";
+if (storageRequired && storageBackend !== "s3" && storageBackend !== "forge") {
+  errors.push("Production requires explicit STORAGE_BACKEND=s3 or STORAGE_BACKEND=forge.");
+}
+if (storageBackend === "s3") {
+  const bucket = (process.env.S3_BUCKET || process.env.BUCKET)?.trim();
+  const accessKey = (process.env.S3_ACCESS_KEY_ID || process.env.ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID)?.trim();
+  const secretKey = (process.env.S3_SECRET_ACCESS_KEY || process.env.SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY)?.trim();
+  if (!bucket || !accessKey || !secretKey) {
+    errors.push("STORAGE_BACKEND=s3 requires bucket, access-key, and secret-key variables.");
+  }
+}
+if (storageBackend === "forge") {
+  if (!process.env.BUILT_IN_FORGE_API_URL?.trim() || !process.env.BUILT_IN_FORGE_API_KEY?.trim()) {
+    errors.push("STORAGE_BACKEND=forge requires BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY.");
   }
 }
 
@@ -82,12 +98,14 @@ console.log(
   JSON.stringify(
     {
       status: "ok",
+      version: RELEASE_VERSION,
       nodeEnv: process.env.NODE_ENV || "development",
       appId,
       databaseConfigured: true,
       bootstrapAdmin: bootstrapEnabled,
       storageRequired,
-      oauthEnabled,
+      storageBackend: storageBackend || null,
+      workflowBackfillOnDeploy: isEnabled(process.env.RUN_WORKFLOW_BACKFILL_ON_DEPLOY),
       commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "local",
     },
     null,

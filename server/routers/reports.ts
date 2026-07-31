@@ -6,8 +6,9 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { permissionProcedure, router } from "../_core/trpc";
 import {
+  getDashboardSnapshot,
   getReportAreaSummaries,
   getReportBlinds,
   getReportGlobalStats,
@@ -31,17 +32,21 @@ const filtersSchema = z.object({
 }).optional();
 
 export const reportsRouter = router({
+  /** Canonical eight-phase operational dashboard. */
+  dashboardSnapshot: permissionProcedure("reports.view", "projects.view").query(async () =>
+    getDashboardSnapshot()),
+
   /**
    * Global executive summary statistics.
    */
-  globalStats: protectedProcedure.query(async () => {
+  globalStats: permissionProcedure("reports.view").query(async () => {
     return getReportGlobalStats();
   }),
 
   /**
    * All blinds with project/area context, supports filters.
    */
-  blinds: protectedProcedure
+  blinds: permissionProcedure("reports.view")
     .input(filtersSchema)
     .query(async ({ input }) => {
       return getReportBlinds(input ?? undefined);
@@ -50,7 +55,7 @@ export const reportsRouter = router({
   /**
    * Project-level summaries with computed metrics.
    */
-  projectSummaries: protectedProcedure
+  projectSummaries: permissionProcedure("reports.view")
     .input(filtersSchema)
     .query(async ({ input }) => {
       return getReportProjectSummaries(input ?? undefined);
@@ -59,7 +64,7 @@ export const reportsRouter = router({
   /**
    * Area-level summaries with aggregated metrics.
    */
-  areaSummaries: protectedProcedure
+  areaSummaries: permissionProcedure("reports.view")
     .input(filtersSchema)
     .query(async ({ input }) => {
       return getReportAreaSummaries(input ?? undefined);

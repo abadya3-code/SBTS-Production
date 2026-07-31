@@ -12,15 +12,16 @@ Features:
 */
 
 import { useState, useMemo } from "react";
-import { Check, Minus, Download, Search, ChevronDown, ChevronRight } from "lucide-react";
-import { permissionGroups, type RoleModel } from "@/lib/mockData";
+import { Check, Minus, Download, Search, ChevronDown, ChevronRight, ShieldCheck } from "lucide-react";
+import type { PermissionGroupModel, RoleModel } from "@/lib/domainCatalog";
 
 interface PermissionMatrixProps {
   roles: RoleModel[];
+  permissionGroups: PermissionGroupModel[];
   onRolesChange: (roles: RoleModel[]) => void;
 }
 
-export default function PermissionMatrix({ roles, onRolesChange }: PermissionMatrixProps) {
+export default function PermissionMatrix({ roles, permissionGroups, onRolesChange }: PermissionMatrixProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeGroupFilter, setActiveGroupFilter] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -28,7 +29,7 @@ export default function PermissionMatrix({ roles, onRolesChange }: PermissionMat
   // All permissions flattened
   const allPermissions = useMemo(
     () => permissionGroups.flatMap((g) => g.permissions),
-    []
+    [permissionGroups]
   );
 
   // Filtered permission groups based on search and group filter
@@ -45,7 +46,7 @@ export default function PermissionMatrix({ roles, onRolesChange }: PermissionMat
         ),
       }))
       .filter((g) => g.permissions.length > 0);
-  }, [searchQuery, activeGroupFilter]);
+  }, [permissionGroups, searchQuery, activeGroupFilter]);
 
   // Toggle a single permission for a role
   function togglePermission(roleKey: string, permKey: string) {
@@ -260,7 +261,7 @@ export default function PermissionMatrix({ roles, onRolesChange }: PermissionMat
           </thead>
           <tbody>
             {filteredGroups.map((group) => {
-              const Icon = group.icon;
+              const Icon = ShieldCheck;
               const isCollapsed = collapsedGroups.has(group.group);
               return (
                 <>

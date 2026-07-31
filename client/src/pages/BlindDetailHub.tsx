@@ -70,9 +70,12 @@ function ProgressRing({ percent }: { percent: number }) {
 // ─── Main Component ───────────────────────────────────────────────────────
 export default function BlindDetailHub() {
   const [, params] = useRoute("/projects/:projectId/blinds/:tag");
-  const [, params2] = useRoute("/areas/:areaId/projects/:projectId/blinds/:tag");
-  const projectId = params?.projectId || params2?.projectId || "";
-  const tag = params?.tag || params2?.tag || "";
+  const [isAreaRoute, areaParams] = useRoute("/areas/:areaId/projects/:projectId/blinds/:tag");
+  const projectId = areaParams?.projectId || params?.projectId || "";
+  const tag = areaParams?.tag || params?.tag || "";
+  const areaId = isAreaRoute ? areaParams?.areaId : undefined;
+  const projectsHref = areaId ? `/areas/${areaId}/projects` : "/projects";
+  const projectHref = areaId ? `/areas/${areaId}/projects/${projectId}` : `/projects/${projectId}`;
   const [activeTab, setActiveTab] = useState("overview");
 
   // Feature toggles
@@ -158,7 +161,7 @@ export default function BlindDetailHub() {
         <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-6 text-center">
           <h2 className="text-lg font-semibold text-destructive">Blind Not Found</h2>
           <p className="text-muted-foreground mt-2">Could not load blind {tag} in project {projectId}.</p>
-          <Link href="/projects">
+          <Link href={projectsHref}>
             <Button variant="outline" className="mt-4"><ArrowLeft className="w-4 h-4 mr-2" />Back to Projects</Button>
           </Link>
         </div>
@@ -178,9 +181,9 @@ export default function BlindDetailHub() {
       {/* ─── Breadcrumb ─────────────────────────────────────────────── */}
       {(toggles?.enableBreadcrumb !== 0) && (
         <div className="flex items-center gap-2 px-6 pt-4 text-sm text-muted-foreground">
-          <Link href="/projects" className="hover:text-foreground transition-colors">Projects</Link>
+          <Link href={projectsHref} className="hover:text-foreground transition-colors">Projects</Link>
           <span>/</span>
-          <Link href={`/projects/${projectId}`} className="hover:text-foreground transition-colors">{project.name}</Link>
+          <Link href={projectHref} className="hover:text-foreground transition-colors">{project.name}</Link>
           <span>/</span>
           <span className="text-foreground font-medium">{tag}</span>
         </div>

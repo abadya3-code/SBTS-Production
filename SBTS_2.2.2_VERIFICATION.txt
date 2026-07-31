@@ -1,0 +1,43 @@
+SBTS 2.2.2 SPRINT 5 RECOVERY — LOCAL VERIFICATION
+Generated: 2026-07-31
+
+Release identity
+  package.json: 2.2.2
+  VERSION:      2.2.2
+  server build: 2.2.2 + immutable build commit
+  release contract: PASSED (33 required files)
+
+Foundation gate
+  pnpm foundation:check: PASSED
+  TypeScript: PASSED (0 errors)
+  Vitest: PASSED (29 files, 264/264 tests)
+  Sprint 2 static: PASSED (73/73)
+  Sprint 3 static: PASSED (40/40)
+  Sprint 4 static: PASSED (66/66)
+  Sprint 5 static: PASSED (16/16)
+  SQL validation: PASSED (57 statements across Sprint 2–5)
+  Production build: PASSED (Vite client + Express server)
+  Production dependency audit: PASSED (no known vulnerabilities)
+  Frontend mock-data imports: 0
+  TODO/FIXME markers: 0
+
+Source safety scan
+  No embedded private keys or AWS access-key identifiers found.
+  No eval/new Function, crypto-miner, preinstall, or postinstall indicators found.
+  child_process is limited to the three release/publish verification scripts
+  that invoke read-only Git commands.
+
+Acceptance boundary
+  This proves the source package locally. It does not prove that Railway has
+  deployed it. Online acceptance requires:
+
+    pnpm deploy:verify -- https://YOUR-SERVICE.up.railway.app
+
+  Both /health and /ready must report version 2.2.2, the GitHub main commit,
+  and /ready must report database: connected.
+
+Known scheduled work
+  Sprint 6: canonical Reports unification and JavaScript route code-splitting.
+  Sprint 7: unify Drizzle/domain migration history; db:push remains blocked.
+  Later RBAC/data sprint: project-scoped evidence ownership and durable Entry
+  Readiness preparer identity.

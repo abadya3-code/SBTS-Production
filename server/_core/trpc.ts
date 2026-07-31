@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { ENV } from "./env";
+import { getWorkflowActorAccess } from "../db/workflowRuntime";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -38,6 +39,31 @@ const requireUser = t.middleware(async opts => {
 });
 
 export const protectedProcedure = t.procedure.use(requireUser);
+
+/**
+ * Authorize a procedure against the database-backed access model.
+ * Supplying multiple keys uses OR semantics; administrators always receive
+ * the wildcard permission from getWorkflowActorAccess.
+ */
+export function permissionProcedure(...requiredPermissionKeys: [string, ...string[]]) {
+  return protectedProcedure.use(
+    t.middleware(async ({ ctx, next }) => {
+      if (!ctx.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+      }
+      const access = ctx.access ?? await getWorkflowActorAccess(ctx.user.openId, ctx.user.role);
+      const permitted = access.permissionKeys.includes("*")
+        || requiredPermissionKeys.some((key) => access.permissionKeys.includes(key));
+      if (!permitted) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Required permission: ${requiredPermissionKeys.join(" or ")}`,
+        });
+      }
+      return next({ ctx: { ...ctx, user: ctx.user, access } });
+    }),
+  );
+}
 
 export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {

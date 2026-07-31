@@ -99,6 +99,21 @@ export async function createOrUpdateLotoRecord(input: {
   await assertAnyWorkflowPermission(actor, ["workflow.record.loto"]);
   await ensureBlindWorkflowRuntime(input.projectId, input.blindTag);
   const db = await requireDb();
+  const existingRows = input.id
+    ? await db.select().from(lotoRecords).where(and(
+        eq(lotoRecords.id, input.id),
+        eq(lotoRecords.blindTag, input.blindTag),
+        eq(lotoRecords.projectId, input.projectId),
+      )).limit(1)
+    : [];
+  const existing = existingRows[0];
+  if (input.id && !existing) throw new Error("LOTO record was not found in this project.");
+  if (input.zeroEnergyVerified && !existing) {
+    throw new Error("Create the LOTO application first; zero-energy verification requires a second user.");
+  }
+  if (input.zeroEnergyVerified && existing?.appliedByOpenId === actor.openId) {
+    throw new Error("The user who applied LOTO cannot independently verify zero energy.");
+  }
   const values = {
     blindTag: input.blindTag,
     projectId: input.projectId,
@@ -106,15 +121,21 @@ export async function createOrUpdateLotoRecord(input: {
     status: input.status,
     lockNumbersJson: JSON.stringify(input.lockNumbers),
     zeroEnergyVerified: input.zeroEnergyVerified ? 1 : 0,
-    appliedByOpenId: actor.openId,
+    appliedByOpenId: existing?.appliedByOpenId ?? actor.openId,
     verifiedByOpenId: input.zeroEnergyVerified ? actor.openId : null,
-    appliedAt: input.status === "active" || input.status === "valid" ? new Date() : null,
+    appliedAt: input.status === "active" || input.status === "valid"
+      ? (existing?.appliedAt ?? new Date())
+      : existing?.appliedAt ?? null,
     releasedAt: input.releasedAt ?? (input.status === "closed" ? new Date() : null),
     notes: input.notes ?? null,
     updatedAt: new Date(),
   };
   if (input.id) {
-    await db.update(lotoRecords).set(values).where(and(eq(lotoRecords.id, input.id), eq(lotoRecords.blindTag, input.blindTag)));
+    await db.update(lotoRecords).set(values).where(and(
+      eq(lotoRecords.id, input.id),
+      eq(lotoRecords.blindTag, input.blindTag),
+      eq(lotoRecords.projectId, input.projectId),
+    ));
     await appendWorkflowRecordAudit(db, input, actor, "LOTO Record Updated", `LOTO ${input.certificateNumber} updated with status ${input.status}; zero-energy verified: ${input.zeroEnergyVerified ? "yes" : "no"}.`);
     return { id: input.id };
   }
@@ -238,6 +259,9 @@ export async function createOrUpdateTorqueRecord(input: {
   if (existing && existing.stage !== input.stage) {
     throw new Error("Torque stage cannot be changed after the record is created.");
   }
+  if (isVerificationDecision && existing?.technicianOpenId === actor.openId) {
+    throw new Error("The torque technician cannot accept or reject their own torque record.");
+  }
   const executionValues: typeof torqueRecords.$inferInsert = {
     blindTag: input.blindTag,
     projectId: input.projectId,
@@ -293,6 +317,24 @@ export async function createOrUpdateLeakTestRecord(input: {
   await assertAnyWorkflowPermission(actor, ["workflow.record.leakTest"]);
   await ensureBlindWorkflowRuntime(input.projectId, input.blindTag);
   const db = await requireDb();
+  const existingRows = await db
+    .select()
+    .from(leakTestRecords)
+    .where(and(
+      eq(leakTestRecords.blindTag, input.blindTag),
+      eq(leakTestRecords.projectId, input.projectId),
+    ))
+    .limit(1);
+  const existing = existingRows[0];
+  if (input.status === "passed" && !existing) {
+    throw new Error("Record the leak test first; acceptance requires a second user.");
+  }
+  if (input.status === "passed" && existing?.performedByOpenId === actor.openId) {
+    throw new Error("The leak-test performer cannot accept their own test.");
+  }
+  if (input.status === "passed" && !input.noLeakObserved) {
+    throw new Error("A leak test cannot pass while leakage is recorded.");
+  }
   const values = {
     blindTag: input.blindTag,
     projectId: input.projectId,
@@ -303,18 +345,17 @@ export async function createOrUpdateLeakTestRecord(input: {
     pressureUnit: input.pressureUnit ?? null,
     durationMinutes: input.durationMinutes ?? null,
     noLeakObserved: input.noLeakObserved ? 1 : 0,
-    performedByOpenId: actor.openId,
+    performedByOpenId: existing?.performedByOpenId ?? actor.openId,
     acceptedByOpenId: input.status === "passed" ? actor.openId : null,
-    testedAt: new Date(),
+    testedAt: existing?.testedAt ?? new Date(),
     acceptedAt: input.status === "passed" ? new Date() : null,
     notes: input.notes ?? null,
     updatedAt: new Date(),
   };
-  const existing = await db.select({ id: leakTestRecords.id }).from(leakTestRecords).where(eq(leakTestRecords.blindTag, input.blindTag)).limit(1);
-  if (existing[0]) {
-    await db.update(leakTestRecords).set(values).where(eq(leakTestRecords.id, existing[0].id));
+  if (existing) {
+    await db.update(leakTestRecords).set(values).where(eq(leakTestRecords.id, existing.id));
     await appendWorkflowRecordAudit(db, input, actor, "Leak Test Updated", `Leak/service test updated with status ${input.status}; no leak observed: ${input.noLeakObserved ? "yes" : "no"}.`);
-    return { id: existing[0].id };
+    return { id: existing.id };
   }
   const result = await db.insert(leakTestRecords).values(values).$returningId();
   await appendWorkflowRecordAudit(db, input, actor, "Leak Test Created", `Leak/service test recorded with status ${input.status}; no leak observed: ${input.noLeakObserved ? "yes" : "no"}.`);

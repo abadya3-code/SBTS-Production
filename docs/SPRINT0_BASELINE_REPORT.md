@@ -1,27 +1,27 @@
 # Sprint 0 Baseline Report
 
-Generated: 2026-07-30T09:47:16.301Z
+Generated: 2026-07-31T12:44:50.048Z
 
 ## Application inventory
 
-- Package: sbts-professional 2.2.1
-- Source files: 283
-- Client pages: 24
+- Package: sbts-professional 2.2.2
+- Source files: 273
+- Client pages: 22
 - Server routers: 16
-- Automated tests: 30
+- Automated tests: 32
 - SQL migrations: 20
 
 ## Baseline findings
 
 ### Legacy phase references
 
-- Count: 290
-- Example files: `client\src\components\blinds\BlindDetailSheet.tsx`, `client\src\components\dashboard\BlindsRegistry.tsx`, `client\src\components\dashboard\MetricsCards.tsx`, `client\src\components\profile\ActivityTimeline.tsx`, `client\src\lib\mockData.ts`, `client\src\pages\BlindDetail.tsx`, `client\src\pages\BlindDetailHub.tsx`, `client\src\pages\ProjectDetail.tsx`
+- Count: 259
+- Example files: `client/src/components/blinds/BlindDetailSheet.tsx`, `client/src/components/dashboard/BlindsRegistry.tsx`, `client/src/components/dashboard/MetricsCards.tsx`, `client/src/components/profile/ActivityTimeline.tsx`, `client/src/pages/BlindDetail.tsx`, `client/src/pages/BlindDetailHub.tsx`, `client/src/pages/ProjectDetail.tsx`, `client/src/pages/Reports.tsx`
 
 ### Mock-data imports
 
-- Count: 6
-- Example files: `client\src\components\access-control\PermissionMatrix.tsx`, `client\src\components\layout\AppShell.tsx`, `client\src\pages\AccessControl.tsx`, `client\src\pages\Dashboard.tsx`, `client\src\pages\WorkflowStudio.tsx`, `_sbts_fix_backup\20260730-113543\client\src\components\layout\AppShell.tsx`
+- Count: 0
+- Example files: None
 
 ### TODO/FIXME markers
 
@@ -30,8 +30,8 @@ Generated: 2026-07-30T09:47:16.301Z
 
 ### Potential placeholder actions
 
-- Count: 118
-- Example files: `client\src\components\access-control\PermissionMatrix.tsx`, `client\src\components\AIChatBox.tsx`, `client\src\components\areas\CreateAreaDialog.tsx`, `client\src\components\blinds\SurveyDialog.tsx`, `client\src\components\dashboard\BlindsRegistry.tsx`, `client\src\components\projects\CreateProjectDialog.tsx`, `client\src\components\settings\CertificateQualitySettings.tsx`, `client\src\components\settings\InspectionActivityBuilder.tsx`
+- Count: 111
+- Example files: `client/src/components/access-control/PermissionMatrix.tsx`, `client/src/components/areas/CreateAreaDialog.tsx`, `client/src/components/blinds/SurveyDialog.tsx`, `client/src/components/dashboard/BlindsRegistry.tsx`, `client/src/components/projects/CreateProjectDialog.tsx`, `client/src/components/settings/CertificateQualitySettings.tsx`, `client/src/components/settings/InspectionActivityBuilder.tsx`, `client/src/components/ui/command.tsx`
 
 ## Sprint 0 controls
 

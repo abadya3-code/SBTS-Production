@@ -7,7 +7,8 @@
 
 import { z } from "zod";
 import { notifyOwner } from "../_core/notification";
-import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
+import { adminProcedure, permissionProcedure, protectedProcedure, router } from "../_core/trpc";
+import { getWorkflowActorAccess } from "../db/workflowRuntime";
 import {
   approveUserRegistration,
   assignRolesToUser,
@@ -25,9 +26,12 @@ import {
 } from "../db";
 
 export const accessControlRouter = router({
-  model: protectedProcedure.query(async () => getAccessControlModel()),
+  myAccess: protectedProcedure.query(async ({ ctx }) =>
+    getWorkflowActorAccess(ctx.user.openId, ctx.user.role)),
 
-  users: protectedProcedure.query(async () => getAllUsers()),
+  model: permissionProcedure("roles.manage").query(async () => getAccessControlModel()),
+
+  users: permissionProcedure("users.view").query(async () => getAllUsers()),
 
   assignRoles: adminProcedure.input(z.object({
     userId: z.number().int().positive(),

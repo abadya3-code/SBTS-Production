@@ -1,5 +1,24 @@
 # CHANGELOG — SBTS Professional Edition
 
+## 2.2.2 — Sprint 5 Recovery Release Candidate
+
+- Fixed clean-clone publishing by installing frozen dependencies inside
+  `02_PUSH_UPDATE.ps1` before validation.
+- Kept `.github/workflows/ci.yml` in the Docker build context because release
+  and regression contracts validate the CI setup during Railway builds.
+- Embedded one immutable version/commit identity across server and browser.
+- Added Git publish verification and post-deployment `/health` + `/ready` proof.
+- Replaced raw authentication rows with an allow-listed AuthUser DTO and
+  invalidated sessions issued before password changes.
+- Added database-backed permission procedures and protected storage redirects.
+- Enforced independent LOTO, torque, and leak-test decisions.
+- Replaced the mock Dashboard with the canonical eight-phase MySQL snapshot.
+- Refreshed the canonical workflow and permission metadata during system seed.
+- Removed unused Manus/OAuth/AI modules, SheetJS, and other unused dependencies;
+  added a small OOXML export adapter.
+- Gated Railway and Docker on database readiness, made workflow backfill
+  explicit, and froze unsafe `db:push` until migration-history unification.
+
 ## 2.2.0 — Foundation Clean Release
 
 - Added portable, resumable recovery for domain migration `0018`.

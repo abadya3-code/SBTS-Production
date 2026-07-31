@@ -59,6 +59,7 @@ const createCaller = () =>
       avatarUrl: null,
       loginMethod: "test",
     },
+    access: { roleKeys: ["test"], permissionKeys: ["*"] },
   });
 
 const validWorkflow = {

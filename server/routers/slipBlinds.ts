@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { permissionProcedure, router } from "../_core/trpc";
 import {
   createSlipBlindSurvey,
   getBlindSurveyHistory,
@@ -19,7 +19,7 @@ export const slipBlindsRouter = router({
   /**
    * Aggregate statistics for the Slip Blinds dashboard.
    */
-  stats: protectedProcedure
+  stats: permissionProcedure("blinds.view")
     .input(
       z.object({
         projectId: z.string().optional(),
@@ -33,7 +33,7 @@ export const slipBlindsRouter = router({
   /**
    * Paginated list of all slip blinds with filters.
    */
-  list: protectedProcedure
+  list: permissionProcedure("blinds.view")
     .input(
       z.object({
         projectId: z.string().optional(),
@@ -52,7 +52,7 @@ export const slipBlindsRouter = router({
   /**
    * List all surveys with optional filters.
    */
-  surveys: protectedProcedure
+  surveys: permissionProcedure("blinds.view")
     .input(
       z.object({
         projectId: z.string().optional(),
@@ -68,7 +68,7 @@ export const slipBlindsRouter = router({
   /**
    * Get a single survey with all its items.
    */
-  surveyDetail: protectedProcedure
+  surveyDetail: permissionProcedure("blinds.view")
     .input(z.object({ surveyId: z.number() }))
     .query(async ({ input }) => {
       return getSlipBlindSurveyDetail(input.surveyId);
@@ -81,7 +81,7 @@ export const slipBlindsRouter = router({
    * - Phase approvals timeline
    * - Survey history for this specific blind
    */
-  blindDetail: protectedProcedure
+  blindDetail: permissionProcedure("blinds.view")
     .input(z.object({ projectId: z.string(), tag: z.string() }))
     .query(async ({ input }) => {
       const [detail, surveyHistory] = await Promise.all([
@@ -102,7 +102,7 @@ export const slipBlindsRouter = router({
    * Export all slip blind data for safety reporting.
    * Returns a structured payload with stats, blinds list, and survey history.
    */
-  exportData: protectedProcedure
+  exportData: permissionProcedure("reports.export")
     .input(
       z.object({
         projectId: z.string().optional(),
@@ -126,7 +126,7 @@ export const slipBlindsRouter = router({
   /**
    * Create a new periodic safety survey.
    */
-  createSurvey: protectedProcedure
+  createSurvey: permissionProcedure("workflow.record.inspection")
     .input(
       z.object({
         surveyDate: z.string(),

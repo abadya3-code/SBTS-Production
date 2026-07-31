@@ -153,6 +153,7 @@ export {
 
 // Reports
 export {
+  getDashboardSnapshot,
   getReportAreaSummaries,
   getReportBlinds,
   getReportGlobalStats,

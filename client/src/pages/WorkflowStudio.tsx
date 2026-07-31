@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
 import { trpc } from "@/lib/trpc";
 import { reorderItems } from "@/lib/workflowOrdering";
-import { type Permission, type PhaseKey, type RoleKey, type RoleModel, type WorkflowPhaseTemplate, type WorkflowStatus, type WorkflowTemplate } from "@/lib/mockData";
+import { type Permission, type PhaseKey, type RoleKey, type RoleModel, type WorkflowPhaseTemplate, type WorkflowStatus, type WorkflowTemplate } from "@/lib/domainCatalog";
 import { canonicalWorkflowPhases } from "../../../shared/workflowSpecification";
 
 type PermissionGroupModel = { group: string; permissions: Permission[] };

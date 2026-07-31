@@ -2,49 +2,54 @@ name: SBTS CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 concurrency:
-  group: sbts-ci-${{ github.ref }}
+  group: sbts-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
-    name: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-
+    timeout-minutes: 25
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@v4
         with:
+          version: 10.4.1
           run_install: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
-          cache: pnpm
+          node-version: "22.16.0"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Show runtime versions
-        run: |
-          node --version
-          pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Foundation validation
-        run: pnpm foundation:check
+      - name: Release structure check
+        run: pnpm release:check
+
+      - name: Sprint contract checks
+        run: |
+          pnpm sprint2:verify
+          pnpm sprint3:verify
+          pnpm sprint4:verify
+          pnpm sprint5:verify
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Production build
+        run: pnpm build

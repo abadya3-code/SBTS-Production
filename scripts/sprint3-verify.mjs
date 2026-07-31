@@ -30,7 +30,7 @@ const inspectionPanel = read("client/src/components/workflow/InspectionActivitie
 const settings = read("client/src/pages/SystemSettings.tsx");
 const packagesPage = read("client/src/pages/IsolationPackages.tsx");
 const app = read("client/src/App.tsx");
-const navigation = read("client/src/lib/mockData.ts");
+const navigation = read("client/src/lib/domainCatalog.ts");
 const seed = read("server/db/seed.ts");
 
 for (const table of ["inspection_activity_templates", "inspection_activity_records"]) {

@@ -12,8 +12,7 @@ import { getDb } from "../db/core";
 import { getStorageBackend } from "../storage";
 import { getDatabaseUrl } from "./databaseUrl";
 import { ENV } from "./env";
-
-const APP_VERSION = process.env.APP_VERSION?.trim() || "2.2.1";
+import { RELEASE_VERSION, releaseIdentity, shortReleaseCommit } from "./release";
 
 function validateEnvironment() {
   getDatabaseUrl(process.env.DATABASE_URL, {
@@ -24,11 +23,14 @@ function validateEnvironment() {
     throw new Error("JWT_SECRET must contain at least 32 characters.");
   }
   if (!ENV.appId) throw new Error("VITE_APP_ID must not be empty.");
-  if (ENV.oAuthEnabled && !ENV.oAuthServerUrl) {
-    throw new Error("ENABLE_OAUTH=true requires OAUTH_SERVER_URL.");
+  const legacyAppVersion = process.env.APP_VERSION?.trim();
+  if (legacyAppVersion && legacyAppVersion !== RELEASE_VERSION) {
+    throw new Error(
+      `APP_VERSION=${legacyAppVersion} is stale; remove APP_VERSION from Railway. The build version is ${RELEASE_VERSION}.`,
+    );
   }
   const storageRequired = process.env.STORAGE_REQUIRED === "true";
-  if (process.env.NODE_ENV === "production" && storageRequired) getStorageBackend();
+  if (process.env.NODE_ENV === "production" || storageRequired) getStorageBackend();
 }
 
 function applySecurityHeaders(app: express.Express) {
@@ -75,10 +77,9 @@ async function startServer() {
     res.status(200).json({
       status: "ok",
       service: "sbts-professional",
-      version: APP_VERSION,
+      ...releaseIdentity(),
       startedAt: startedAt.toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
-      commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "local",
     });
   });
 
@@ -94,12 +95,11 @@ async function startServer() {
       res.status(200).json({
         status: "ready",
         database: "connected",
-        version: APP_VERSION,
-        commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "local",
+        ...releaseIdentity(),
       });
     } catch (error) {
       console.error("[Readiness] database check failed:", error);
-      res.status(503).json({ status: "not_ready", database: "error" });
+      res.status(503).json({ status: "not_ready", database: "error", ...releaseIdentity() });
     }
   });
 
@@ -149,7 +149,7 @@ async function startServer() {
 
   server.listen(port, host, () => {
     console.log(
-      `SBTS ${APP_VERSION} listening on http://${host}:${port} (appId=${ENV.appId})`,
+      `SBTS ${RELEASE_VERSION}+${shortReleaseCommit()} listening on http://${host}:${port} (appId=${ENV.appId}, storage=${process.env.STORAGE_BACKEND?.trim() || "not-configured"})`,
     );
   });
 

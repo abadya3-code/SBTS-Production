@@ -53,6 +53,7 @@ function createUserContext(role: "user" | "admin" = "user"): TrpcContext {
       updatedAt: new Date(),
       lastSignedIn: new Date(),
     },
+    access: { roleKeys: ["test"], permissionKeys: ["*"] },
     req: {
       protocol: "https",
       headers: {},

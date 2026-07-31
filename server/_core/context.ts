@@ -1,11 +1,13 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
 import { sdk } from "./sdk";
+import { getWorkflowActorAccess, type WorkflowActorAccess } from "../db/workflowRuntime";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
   user: User | null;
+  access: WorkflowActorAccess | null;
 };
 
 /**
@@ -25,9 +27,11 @@ export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
   let user: User | null = null;
+  let access: WorkflowActorAccess | null = null;
 
   try {
     user = await sdk.authenticateRequest(opts.req);
+    access = await getWorkflowActorAccess(user.openId, user.role);
   } catch {
     // Authentication is optional for public procedures.
     user = null;
@@ -37,5 +41,6 @@ export async function createContext(
     req: opts.req,
     res: opts.res,
     user,
+    access,
   };
 }

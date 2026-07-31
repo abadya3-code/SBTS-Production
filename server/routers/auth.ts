@@ -17,6 +17,7 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "../_core/cookies";
+import { toAuthUser } from "../_core/authUser";
 import { ENV } from "../_core/env";
 import { sdk } from "../_core/sdk";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "../_core/trpc";
@@ -73,7 +74,7 @@ async function getSessionDurationMs(): Promise<number> {
 
 export const authRouter = router({
   /** Return the currently authenticated user, or null if not logged in. */
-  me: publicProcedure.query((opts) => opts.ctx.user ?? null),
+  me: publicProcedure.query((opts) => opts.ctx.user ? toAuthUser(opts.ctx.user) : null),
 
   /**
    * Login with email + password.
@@ -162,9 +163,7 @@ export const authRouter = router({
         maxAge: sessionDurationMs,
       });
 
-      // Return user without passwordHash for security
-      const { passwordHash: _ph, ...safeUser } = user;
-      return { success: true, user: safeUser };
+      return { success: true, user: toAuthUser(user) };
     }),
 
   /** Clear the session cookie. */

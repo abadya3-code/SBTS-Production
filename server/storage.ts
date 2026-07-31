@@ -17,7 +17,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ENV } from "./_core/env";
 
-type StorageBackend = "forge" | "s3";
+export type StorageBackend = "forge" | "s3";
 
 interface S3Config {
   bucket: string;
@@ -93,11 +93,17 @@ function getS3Client(config: S3Config) {
 }
 
 export function getStorageBackend(): StorageBackend {
-  if (getForgeConfig()) return "forge";
-  if (getS3Config()) return "s3";
-  throw new Error(
-    "Storage is not configured. Provide Manus Forge variables or an S3-compatible bucket configuration.",
-  );
+  const requested = process.env.STORAGE_BACKEND?.trim().toLowerCase();
+  if (requested !== "s3" && requested !== "forge") {
+    throw new Error("STORAGE_BACKEND must explicitly select s3 or forge.");
+  }
+  if (requested === "s3" && !getS3Config()) {
+    throw new Error("STORAGE_BACKEND=s3 requires bucket, access-key, and secret-key variables.");
+  }
+  if (requested === "forge" && !getForgeConfig()) {
+    throw new Error("STORAGE_BACKEND=forge requires BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY.");
+  }
+  return requested;
 }
 
 async function forgeSignedUrl(key: string, method: "put" | "get") {

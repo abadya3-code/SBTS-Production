@@ -70,7 +70,7 @@ check("Sprint 4 permissions in seed", seed.includes("workflow.certificate.issue"
 check("Railway S3 storage", storage.includes('envValue("S3_BUCKET", "BUCKET")') && storage.includes("PutObjectCommand") && storage.includes("DeleteObjectCommand"), "Railway Bucket variables and object deletion required.");
 check("Evidence storage key", schema.includes('storageKey: varchar("storageKey"') && migration.includes("ADD COLUMN `storageKey`") && read("server/db/workflowRecords.ts").includes("storageKeyFromUrl"), "Evidence must retain backend-neutral object key.");
 check("Production health endpoints", serverEntry.includes('app.get("/health"') && serverEntry.includes('app.get("/ready"') && serverEntry.includes('"0.0.0.0"'), "Railway requires health path and network binding.");
-check("Railway config as code", read("railway.json").includes("preDeployCommand") && read("railway.json").includes("/health"), "Migration and healthcheck must be configured.");
+check("Railway config as code", read("railway.json").includes("preDeployCommand") && read("railway.json").includes("/ready"), "Migration and database-readiness healthcheck must be configured.");
 check("Admin bootstrap", exists("scripts/create-admin.ts") && packageJson.scripts["admin:create"], "Initial admin creation must be documented and scriptable.");
 check("Staging E2E command", packageJson.scripts["staging:e2e"] && read("scripts/sprint4-staging-e2e.ts").includes("Canonical runtime"), "Authenticated staging validation is required.");
 check("TiDB compatibility", !migration.includes("JSON_TABLE("), "Migration must remain TiDB compatible.");

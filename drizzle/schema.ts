@@ -407,7 +407,7 @@ export const systemSettings = mysqlTable("system_settings", {
   dashboardHeroImageUrl: text("dashboardHeroImageUrl"),
   dashboardCtaButtons: text("dashboardCtaButtons"), // JSON array [{label, href, variant}]
   // Version
-  versionName: varchar("versionName", { length: 100 }).default("Professional Edition v1.0"),
+  versionName: varchar("versionName", { length: 100 }).default("Professional Edition"),
   versionDate: varchar("versionDate", { length: 40 }),
   updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -6,7 +6,7 @@
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
+import { adminProcedure, permissionProcedure, router } from "../_core/trpc";
 import {
   addBlindToProject,
   broadcastNotification,
@@ -54,24 +54,24 @@ const toActingUser = (ctxUser: RouterContextUser) => ({
 // ─── Router ────────────────────────────────────────────────────────────────
 
 export const projectsRouter = router({
-  list: protectedProcedure.query(async () => getAllProjects()),
+  list: permissionProcedure("projects.view").query(async () => getAllProjects()),
 
-  listByArea: protectedProcedure
+  listByArea: permissionProcedure("projects.view")
     .input(z.object({ areaId: z.number().int().positive() }))
     .query(async ({ input }) => getProjectsByArea(input.areaId)),
 
-  detail: protectedProcedure
+  detail: permissionProcedure("projects.view")
     .input(z.object({ id: z.string().min(2).max(40) }))
     .query(async ({ input }) => getProjectDetail(input.id)),
 
-  blindDetail: protectedProcedure
+  blindDetail: permissionProcedure("blinds.view")
     .input(z.object({
       projectId: z.string().min(2).max(40),
       tag: z.string().trim().min(2).max(40),
     }))
     .query(async ({ input }) => getBlindDetail(input.projectId, input.tag)),
 
-  create: protectedProcedure
+  create: permissionProcedure("projects.create")
     .input(projectCreateSchema)
     .mutation(async ({ input, ctx }) => {
       let project: Awaited<ReturnType<typeof createProject>>;
@@ -109,7 +109,7 @@ export const projectsRouter = router({
       return project;
     }),
 
-  addBlind: protectedProcedure.input(blindCreateSchema).mutation(async ({ input, ctx }) => {
+  addBlind: permissionProcedure("blinds.create").input(blindCreateSchema).mutation(async ({ input, ctx }) => {
     const actingUser = toActingUser(ctx.user);
     const allowed = await canUserEditProjectPhase(
       input.projectId,
@@ -125,7 +125,7 @@ export const projectsRouter = router({
     return addBlindToProject(input, actingUser);
   }),
 
-  bulkAddBlinds: protectedProcedure
+  bulkAddBlinds: permissionProcedure("blinds.create")
     .input(z.object({
       projectId: z.string().min(2).max(40),
       blinds: z.array(blindInputSchema).min(1).max(500),
@@ -147,7 +147,7 @@ export const projectsRouter = router({
       return bulkAddBlindsToProject(input.projectId, input.blinds);
     }),
 
-  updateBlind: protectedProcedure.input(blindUpdateSchema).mutation(async ({ input, ctx }) => {
+  updateBlind: permissionProcedure("blinds.edit").input(blindUpdateSchema).mutation(async ({ input, ctx }) => {
     const detail = await getProjectDetail(input.projectId);
     const existing = detail?.blinds.find((blind) => blind.tag === input.tag);
     if (!existing) {
@@ -200,7 +200,7 @@ export const projectsRouter = router({
     return result;
   }),
 
-  approveBlindPhase: protectedProcedure
+  approveBlindPhase: permissionProcedure("workflow.approve")
     .input(blindPhaseApprovalSchema)
     .mutation(async ({ input, ctx }) => {
       const actingUser = toActingUser(ctx.user);
@@ -238,11 +238,11 @@ export const projectsRouter = router({
     }),
 
   settings: router({
-    get: protectedProcedure
+    get: permissionProcedure("projects.view")
       .input(z.object({ projectId: z.string().min(2).max(40) }))
       .query(async ({ input }) => getProjectSettings(input.projectId)),
 
-    assignableUsers: protectedProcedure.query(async () => getAssignableProjectUsers()),
+    assignableUsers: permissionProcedure("users.view").query(async () => getAssignableProjectUsers()),
 
     update: adminProcedure
       .input(projectSettingsSchema)

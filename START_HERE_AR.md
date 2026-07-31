@@ -1,53 +1,38 @@
-# ابدأ من هنا — SBTS 2.2 Foundation Clean
+# ابدأ من هنا — SBTS 2.2.2 Sprint 5 Recovery
 
-هذه نسخة مصدر كاملة ونظيفة، لا تحتوي على `.git` أو `.env` أو `node_modules` أو `dist` أو كلمات مرور.
+هذه حزمة مصدر نظيفة، وليست مستودع Git. وجود الملفات وحده لا يرسل أي تحديث إلى GitHub أو Railway.
 
-## الطريقة الموصى بها لمستودعك الحالي
+## المسار الصحيح الوحيد للنشر
 
-1. احتفظ بنسخة احتياطية من مجلد `SBTS-Master` الحالي.
-2. فك ضغط الحزمة الجديدة في مسار ثابت، مثل:
-
-```text
-C:\Projects\SBTS\SBTS-2.2-Foundation-Clean
-```
-
-3. افتح هذا المجلد نفسه في VS Code.
-4. شغّل مرة واحدة:
-
-```text
-01_CONNECT_GITHUB_ONCE.cmd
-```
-
-السكربت يتصل بـGitHub، ويجلب تاريخ فرع `main` الحالي عند وجوده، ثم يرفع النسخة النظيفة كـCommit جديد دون Force Push.
-
-## التحديثات المستقبلية
-
-بعد أي تعديل أو بعد نسخ ملفات تحديث جديدة إلى نفس المجلد:
+1. استخدم نسخة Git الحقيقية في `C:\Projects\SBTS\SBTS-Production` وتأكد أن داخلها مجلد `.git`.
+2. انسخ محتويات هذه الحزمة فوق النسخة الحقيقية مع الاحتفاظ بمجلد `.git` وعدم نسخ `node_modules` أو `.env`.
+3. افتح `SBTS-Production` نفسه في VS Code.
+4. من Railway احذف المتغير `APP_VERSION` إن كان موجوداً؛ هو سبب مباشر لبقاء الرقم `2.1.0` في بعض النشرات القديمة.
+5. اضبط Object Storage صراحة باستخدام `STORAGE_BACKEND=s3` ومتغيرات Railway Bucket الموضحة في `RAILWAY_VARIABLES_TEMPLATE.txt`.
+6. شغّل:
 
 ```text
 02_PUSH_UPDATE.cmd
 ```
 
-أو:
+السكربت يرفض العمل دون `.git`، يثبت الحزم المقفلة تلقائياً حتى في المجلد
+النظيف، يشغّل الفحص الكامل، يتحقق من `origin` وفرع `main`، ثم يقارن الـcommit
+المرفوع مع GitHub.
+
+## تحقق النسخة المنشورة
+
+بعد أن تصبح Railway بحالة Success شغّل من نفس مجلد Git:
 
 ```powershell
-git add .
-git commit -m "وصف التحديث"
-git push origin main
+pnpm deploy:verify -- https://YOUR-SERVICE.up.railway.app
 ```
 
-ومع تفعيل Auto Deploy يصبح المسار:
+لا يعتبر Sprint 5 منشوراً إلا إذا أعاد `/health` و`/ready` معاً:
 
-```text
-VS Code → GitHub main → Railway → الموقع المباشر
-```
+- `version: 2.2.2`
+- نفس Git commit الموجود في GitHub `main`
+- `database: connected`
 
-## قبل Railway
+## Backfill
 
-اقرأ `RAILWAY_SETUP_AR.md`. أهم قاعدة: متغير `DATABASE_URL` يكون اسمه `DATABASE_URL` وقيمته المرجعية فقط:
-
-```text
-${{MySQL.MYSQL_URL}}
-```
-
-ولا تكتب `DATABASE_URL=` داخل خانة القيمة.
+لا يعمل backfill الثقيل في كل نشر بعد الآن. عند أول ترقية فقط شغّله يدوياً، أو فعّل `RUN_WORKFLOW_BACKFILL_ON_DEPLOY=true` لنشرة واحدة ثم أعده إلى `false`.

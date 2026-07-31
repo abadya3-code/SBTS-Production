@@ -37,8 +37,12 @@ describe("project phase owner assignment matching", () => {
     expect(canActingUserEditAssignedPhase(assignedPhase, actingUser({ openId: "qc-open-id" }))).toBe(true);
   });
 
-  it("allows a configured assignee matched by SSO email when openId differs", () => {
-    expect(canActingUserEditAssignedPhase(assignedPhase, actingUser({ openId: "new-sso-id", email: "qc@example.com" }))).toBe(true);
+  it("does not authorize by mutable email or display name", () => {
+    expect(canActingUserEditAssignedPhase(assignedPhase, actingUser({
+      openId: "different-user",
+      name: "QC Inspector",
+      email: "qc@example.com",
+    }))).toBe(false);
   });
 
   it("blocks users who are not among the configured phase assignees", () => {
@@ -51,5 +55,10 @@ describe("project phase owner assignment matching", () => {
       "https://example.com/qc.png",
     ]);
     expect(canActingUserEditAssignedPhase({ ...assignedPhase, ownerRole: "unexpected-role" }, actingUser({ openId: "qc-open-id" }))).toBe(true);
+  });
+
+  it("fails closed when a phase has no immutable assignee", () => {
+    expect(canActingUserEditAssignedPhase({ ...assignedPhase, owners: [] }, actingUser({}))).toBe(false);
+    expect(canActingUserEditAssignedPhase(undefined, actingUser({}))).toBe(false);
   });
 });

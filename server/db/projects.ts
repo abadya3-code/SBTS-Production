@@ -321,7 +321,11 @@ export async function getProjectSettings(projectId: string): Promise<ProjectSett
 
 export async function getAssignableProjectUsers(): Promise<AssignableProjectUser[]> {
   const db = await requireDb();
-  const rows = await db.select().from(users).orderBy(asc(users.name));
+  const rows = await db
+    .select()
+    .from(users)
+    .where(eq(users.userStatus, "active"))
+    .orderBy(asc(users.name));
   return rows.map((user) => ({
     openId: user.openId,
     name: user.name?.trim() || user.email || user.openId,

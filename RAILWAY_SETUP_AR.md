@@ -1,44 +1,57 @@
-# إعداد Railway النهائي — SBTS 2.2 Foundation
+# إعداد Railway — SBTS 2.2.2 Sprint 5 Recovery
 
-## 1. الخدمات المطلوبة
+## 1. اربط المصدر الصحيح
 
-داخل Project وEnvironment نفسيهما أنشئ:
+- خدمة التطبيق يجب أن ترتبط بالمستودع `abadya3-code/SBTS-Production` وفرع
+  `main` مع Auto Deploy.
+- اترك Root Directory فارغاً، واستخدم `railway.json` و`Dockerfile` الموجودين
+  في المستودع.
+- احذف `APP_VERSION` إن كان موجوداً. هو متغير قديم؛ النسخة والـcommit يُبنيان
+  داخل التطبيق ولا يجوز تغييرهما من لوحة Railway.
 
-1. خدمة تطبيق من GitHub.
-2. خدمة Railway MySQL.
-3. Storage Bucket لاحقًا عند تفعيل المرفقات.
+## 2. MySQL
 
-اربط التطبيق بفرع `main`، اترك Root Directory فارغًا، وفعّل Auto Deploy.
+أضف خدمة Railway MySQL في Project وEnvironment نفسيهما، ثم أضف Reference في
+خدمة التطبيق:
 
-## 2. ربط MySQL دون أخطاء
-
-في خدمة التطبيق:
-
-```text
-Variables → New Variable → Add Reference → MySQL → MYSQL_URL
+```env
+DATABASE_URL=${{MySQL.MYSQL_URL}}
 ```
 
-- الاسم: `DATABASE_URL`
-- القيمة: `${{MySQL.MYSQL_URL}}`
+لا تستخدم `localhost` ولا تكرر المتغير.
 
-احذف أي `DATABASE_URL` قديم أو مكرر. لا تكتب داخل القيمة `DATABASE_URL=` ولا تستخدم localhost.
+## 3. المتغيرات الأساسية والتخزين
 
-## 3. المتغيرات الأساسية
+ابدأ من `RAILWAY_VARIABLES_TEMPLATE.txt`. القيم الأساسية هي:
 
 ```env
 NODE_ENV=production
 HOST=0.0.0.0
 VITE_APP_ID=sbts-production
-JWT_SECRET=PUT_A_FIXED_RANDOM_SECRET_OF_AT_LEAST_64_CHARACTERS_HERE
+JWT_SECRET=REPLACE_WITH_RANDOM_SECRET_64_CHARACTERS_OR_MORE
 REQUEST_BODY_LIMIT=50mb
-STORAGE_REQUIRED=false
-ENABLE_MANUS_RUNTIME=false
-ENABLE_OAUTH=false
+STORAGE_REQUIRED=true
+STORAGE_BACKEND=s3
+RUN_WORKFLOW_BACKFILL_ON_DEPLOY=false
+BOOTSTRAP_ADMIN_ON_DEPLOY=false
 ```
 
-لا تضف `PORT`؛ Railway تزوده تلقائيًا.
+اربط Railway Bucket وأضف القيم التي يولدها إلى `S3_BUCKET` و`S3_ENDPOINT`
+و`S3_ACCESS_KEY_ID` و`S3_SECRET_ACCESS_KEY` و`S3_REGION`. لا تضف `PORT`؛
+Railway يضبطه تلقائياً. لا تضف `ENABLE_OAUTH` أو `ENABLE_MANUS_RUNTIME`؛ هذه
+المسارات أزيلت من إصدار SBTS المستقل.
 
-## 4. إنشاء أو إعادة ضبط Admin مرة واحدة
+## 4. الترقية الأولى فقط
+
+عند نشر 2.2.2 لأول مرة على قاعدة تحتوي Blinds قديمة، اضبط:
+
+```env
+RUN_WORKFLOW_BACKFILL_ON_DEPLOY=true
+```
+
+بعد نجاح النشرة أعده إلى `false`. لا يُشغّل backfill الثقيل في كل نشر.
+
+## 5. إنشاء أو إعادة ضبط Admin مرة واحدة
 
 ```env
 BOOTSTRAP_ADMIN_ON_DEPLOY=true
@@ -48,81 +61,57 @@ ADMIN_PASSWORD=YOUR_NEW_STRONG_PASSWORD
 ADMIN_EMPLOYEE_NUMBER=SBTS-ADMIN
 ```
 
-كلمة المرور: 12 محرفًا على الأقل، وتحتوي حرفًا كبيرًا وصغيرًا ورقمًا ورمزًا.
+استخدم 12 محرفاً على الأقل تشمل كبيراً وصغيراً ورقماً ورمزاً. بعد نجاح الدخول:
 
-خلال Pre-deploy يقوم النظام بـ:
-
-1. فحص المتغيرات ورفض القيم الافتراضية أو DATABASE_URL الخاطئ.
-2. تطبيق Drizzle migrations ثم SBTS domain migrations مع إصلاح آمن لأي فشل جزئي في migration 0018.
-3. فحص عقد الجداول والأعمدة والفهارس الفعلية في MySQL.
-4. تثبيت بيانات النظام المرجعية فقط: الصلاحيات والأدوار وقالب الـworkflow.
-5. إنشاء أو استكمال canonical workflow runtime لكل Blind موجود.
-6. إنشاء Admin أو إعادة ضبط كلمة مرور الحساب الموجود عند تفعيل Bootstrap.
-7. التحقق من الجداول والأعمدة والعلاقات والـruntime والـpassword hash.
-8. اختبار إنشاء JWT والتحقق منه وربطه بنفس VITE_APP_ID.
-
-يجب أن يظهر أحد السطرين:
-
-```text
-ADMIN_BOOTSTRAP_CREATED_OK
-ADMIN_BOOTSTRAP_RESET_OK
-```
-
-ثم تظهر نتيجة Doctor:
-
-```json
-{"status":"passed","activeAdmin":true,"sessionRoundTrip":true}
-```
-
-إذا لم تتطابق كلمة المرور أو البريد، يفشل الـPre-deploy برسالة واضحة ولا يستبدل النسخة العاملة.
-
-## 5. بعد نجاح الدخول
-
-1. غيّر `BOOTSTRAP_ADMIN_ON_DEPLOY=false`.
+1. أعد `BOOTSTRAP_ADMIN_ON_DEPLOY=false`.
 2. احذف `ADMIN_PASSWORD`.
-3. Deploy Changes مرة أخيرة.
-4. لا تغيّر `JWT_SECRET` بعد ذلك إلا عند إلغاء جميع الجلسات عمدًا.
+3. نفّذ Deploy جديداً.
+4. لا تغيّر `JWT_SECRET` إلا إذا أردت إلغاء جميع الجلسات.
 
-## 6. إعداد البناء
-
-`railway.json` يطلب Dockerfile مباشرة. لا تضع Build/Start Commands يدوية متعارضة في Dashboard.
-
-التسلسل:
+## 6. ما يحدث قبل تشغيل النسخة
 
 ```text
-Docker locked install
-→ release check
-→ Vite/Express build
-→ pre-deploy validation and migrations
-→ system reference seed (no demo data)
-→ workflow runtime backfill
-→ admin bootstrap when enabled
-→ production doctor
-→ node dist/index.js
-→ /health
+فحص المتغيرات وهوية الإصدار
+→ تطبيق Drizzle migrations
+→ تطبيق SBTS domain migrations ذات checksums
+→ فحص عقد MySQL
+→ تحديث الصلاحيات والقالب القياسي دون Demo data
+→ backfill اختياري لأول ترقية
+→ bootstrap اختياري للمدير
+→ Production Doctor
+→ تشغيل التطبيق كمستخدم غير root
+→ /ready
 ```
 
-## 7. التحقق بعد النشر
+أي خطأ يوقف النشرة قبل استبدال النسخة العاملة.
+
+## 7. إثبات أن Railway شغّل المصدر الجديد
+
+بعد أن تصبح النشرة Success، شغّل من نسخة Git الحقيقية:
+
+```powershell
+pnpm deploy:verify -- https://YOUR-SERVICE.up.railway.app
+```
+
+يجب أن يعيد كل من:
 
 ```text
-https://YOUR-DOMAIN/health
-https://YOUR-DOMAIN/ready
+https://YOUR-SERVICE.up.railway.app/health
+https://YOUR-SERVICE.up.railway.app/ready
 ```
 
-بعد أن تصبح النسخة Active، افتح نافذة Incognito وسجل الدخول ببيانات `ADMIN_EMAIL` و`ADMIN_PASSWORD` المستخدمة في آخر Bootstrap.
+القيم التالية:
 
-## 8. المرفقات
+- `version: 2.2.2`
+- commit مطابق لآخر commit على GitHub `main`
+- `/ready`: `database: connected`
 
-ابدأ بـ`STORAGE_REQUIRED=false`. عند إضافة Railway Bucket اربط متغيراته S3 ثم غيّرها إلى true بعد اختبار الرفع والحذف.
+إذا بقيت 2.1.0 فالمشكلة ليست Cache: Railway يبني commit قديماً أو خدمة مرتبطة
+بمستودع/فرع آخر. افحص Source وDeploy Commit في Railway وقارنه بنتيجة
+`git rev-parse HEAD`.
 
+## 8. Demo data
 
-## 9. قاعدة بيانات الاختبار Demo
-
-لا يتم تشغيل `SEED_DEMO_DATA` تلقائيًا في Railway. لإنشاء بيانات تجريبية في بيئة UAT مؤقتة فقط:
-
-```env
-SEED_DEMO_DATA=true
-ALLOW_DEMO_DATA_IN_PRODUCTION=true
-```
-
-ثم شغّل `pnpm data:seed` يدويًا. لا تستخدم ذلك في قاعدة الإنتاج الحقيقية.
+لا يتم تشغيل Demo data في Railway. يمكن تشغيل `pnpm data:seed` يدوياً في UAT
+مؤقت فقط مع `SEED_DEMO_DATA=true` و`ALLOW_DEMO_DATA_IN_PRODUCTION=true`، ولا
+تستخدم ذلك في قاعدة الإنتاج.

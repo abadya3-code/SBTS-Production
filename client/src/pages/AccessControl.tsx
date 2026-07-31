@@ -2,20 +2,21 @@
 Design Philosophy: Industrial Command Center Minimalism.
 Access Control Center centralizes scattered settings, user permissions, workflow ownership, and menu visibility into one maintainable role-based operating model.
 */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Check, ChevronRight, Copy, Eye, GitBranch, Grid3X3, LockKeyhole, Plus, Save, ShieldCheck, SlidersHorizontal, Users } from "lucide-react";
+import { Check, ChevronRight, Copy, Eye, GitBranch, Grid3X3, Loader2, LockKeyhole, Save, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
-import { initialRoles, menuCatalog, permissionGroups, phases, type RoleModel } from "@/lib/mockData";
+import { menuCatalog, type PermissionGroupModel, type RoleModel } from "@/lib/domainCatalog";
 import PermissionMatrix from "@/components/access-control/PermissionMatrix";
+import { trpc } from "@/lib/trpc";
+import { canonicalWorkflowPhases } from "../../../shared/workflowSpecification";
 
 const tabs = [
   { key: "system", label: "System Access", icon: LockKeyhole },
   { key: "matrix", label: "Permission Matrix", icon: Grid3X3 },
   { key: "workflow", label: "Workflow Tasks", icon: GitBranch },
   { key: "visibility", label: "Menu Visibility", icon: Eye },
-  { key: "scope", label: "People Scope", icon: Users },
 ] as const;
 
 type TabKey = (typeof tabs)[number]["key"];
@@ -29,12 +30,53 @@ function toggleItem(items: string[], key: string) {
 }
 
 export default function AccessControl() {
-  const [roles, setRoles] = useState<RoleModel[]>(initialRoles);
-  const [activeRoleKey, setActiveRoleKey] = useState(initialRoles[0].key);
+  const [roles, setRoles] = useState<RoleModel[]>([]);
+  const [activeRoleKey, setActiveRoleKey] = useState<RoleModel["key"] | "">("");
   const [activeTab, setActiveTab] = useState<TabKey>("system");
+  const accessQuery = trpc.accessControl.model.useQuery();
+  const utils = trpc.useUtils();
+  const accessData = accessQuery.data as { permissionGroups: PermissionGroupModel[]; roles: RoleModel[] } | undefined;
+  const updateRolesMutation = trpc.accessControl.updateRoles.useMutation({
+    onSuccess: async () => {
+      await utils.accessControl.model.invalidate();
+      toast.success("Access-control model saved to MySQL.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const createRoleMutation = trpc.accessControl.createRole.useMutation({
+    onSuccess: async (_result, variables) => {
+      await utils.accessControl.model.invalidate();
+      setActiveRoleKey(variables.key as RoleModel["key"]);
+      toast.success("Role copy created in MySQL.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    if (!accessData) return;
+    setRoles(accessData.roles);
+    setActiveRoleKey((current) => accessData.roles.some((role) => role.key === current)
+      ? current
+      : (accessData.roles[0]?.key ?? ""));
+  }, [accessData]);
+
+  const permissionGroups = accessData?.permissionGroups ?? [];
+  const phases = useMemo(() => canonicalWorkflowPhases.map((phase) => ({
+    key: phase.key,
+    label: phase.label,
+    color: phase.color,
+    owner: phase.ownerRoleKey,
+  })), []);
 
   const activeRole = useMemo(() => roles.find((role) => role.key === activeRoleKey) ?? roles[0], [roles, activeRoleKey]);
   const allPermissionsCount = permissionGroups.flatMap((group) => group.permissions).length;
+
+  if (accessQuery.isLoading) {
+    return <div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-700" /></div>;
+  }
+  if (accessQuery.error || !activeRole) {
+    return <div className="sbts-card p-8 text-center text-sm text-red-700">{accessQuery.error?.message ?? "No access-control roles are configured."}</div>;
+  }
 
   function updateRole(updater: (role: RoleModel) => RoleModel) {
     setRoles((current) => current.map((role) => (role.key === activeRole.key ? updater(role) : role)));
@@ -53,19 +95,26 @@ export default function AccessControl() {
   }
 
   function saveDraft() {
-    toast.success("Access control draft saved locally. Backend persistence will be connected in the Node + SQL phase.");
+    updateRolesMutation.mutate(roles.map(({ key, name, subtitle, color, permissionKeys, menuKeys, phaseKeys }) => ({
+      key,
+      name,
+      subtitle,
+      color,
+      permissionKeys,
+      menuKeys,
+      phaseKeys,
+    })));
   }
 
   function duplicateRole() {
+    const roleKey = `${activeRole.key.slice(0, 50)}-copy-${Date.now()}` as RoleModel["key"];
     const copy: RoleModel = {
       ...activeRole,
-      key: `${activeRole.key}-copy` as RoleModel["key"],
+      key: roleKey,
       name: `${activeRole.name} Copy`,
       members: 0,
     };
-    setRoles((current) => [...current, copy]);
-    setActiveRoleKey(copy.key);
-    toast.info("Role template duplicated for review.");
+    createRoleMutation.mutate(copy);
   }
 
   return (
@@ -73,14 +122,14 @@ export default function AccessControl() {
       <PageHeader
         eyebrow="Unified governance"
         title="Access Control Center"
-        description="A single place for roles, permissions, workflow ownership, menu visibility, and user scope. This replaces scattered controls in Settings, Users, and Workflow Control."
+        description="Database-backed roles, permissions, canonical workflow ownership, and menu visibility. Changes take effect only after an explicit save."
         actions={
           <>
-            <button onClick={duplicateRole} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-cyan-200 hover:text-cyan-700">
+            <button onClick={duplicateRole} disabled={createRoleMutation.isPending} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-cyan-200 hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-60">
               <Copy className="h-4 w-4" /> Duplicate role
             </button>
-            <button onClick={saveDraft} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800">
-              <Save className="h-4 w-4" /> Save model
+            <button onClick={saveDraft} disabled={updateRolesMutation.isPending} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
+              <Save className="h-4 w-4" /> {updateRolesMutation.isPending ? "Saving..." : "Save model"}
             </button>
           </>
         }
@@ -104,7 +153,7 @@ export default function AccessControl() {
             </div>
           </div>
           <div className="p-4 sm:p-6">
-            <PermissionMatrix roles={roles} onRolesChange={setRoles} />
+            <PermissionMatrix roles={roles} permissionGroups={permissionGroups} onRolesChange={setRoles} />
           </div>
         </div>
       ) : (
@@ -117,9 +166,7 @@ export default function AccessControl() {
                   <h3 className="font-extrabold text-slate-950">Role templates</h3>
                   <p className="mt-1 text-xs font-medium text-slate-500">Edit once, apply everywhere.</p>
                 </div>
-                <button className="rounded-2xl bg-cyan-50 p-2.5 text-cyan-700 ring-1 ring-cyan-100 transition hover:bg-cyan-100" onClick={() => toast.info("New role creation will open a guided role wizard in the next iteration.")} aria-label="Add role">
-                  <Plus className="h-5 w-5" />
-                </button>
+                <ShieldCheck className="h-5 w-5 text-cyan-700" aria-hidden />
               </div>
             </div>
             <div className="space-y-2 p-3">
@@ -162,7 +209,7 @@ export default function AccessControl() {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-50 p-2 text-center ring-1 ring-slate-200">
-                  <div className="px-3 py-2"><div className="text-lg font-extrabold text-slate-950">{Math.round((activeRole.permissionKeys.length / allPermissionsCount) * 100)}%</div><div className="text-[10px] font-bold uppercase text-slate-400">Access</div></div>
+                  <div className="px-3 py-2"><div className="text-lg font-extrabold text-slate-950">{Math.round((activeRole.permissionKeys.length / Math.max(allPermissionsCount, 1)) * 100)}%</div><div className="text-[10px] font-bold uppercase text-slate-400">Access</div></div>
                   <div className="px-3 py-2"><div className="text-lg font-extrabold text-slate-950">{activeRole.phaseKeys.length}</div><div className="text-[10px] font-bold uppercase text-slate-400">Tasks</div></div>
                   <div className="px-3 py-2"><div className="text-lg font-extrabold text-slate-950">{activeRole.menuKeys.length}</div><div className="text-[10px] font-bold uppercase text-slate-400">Menus</div></div>
                 </div>
@@ -188,7 +235,7 @@ export default function AccessControl() {
               {activeTab === "system" && (
                 <div className="space-y-4">
                   {permissionGroups.map((group) => {
-                    const Icon = group.icon;
+                    const Icon = ShieldCheck;
                     return (
                       <div key={group.group} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3">
@@ -263,27 +310,6 @@ export default function AccessControl() {
                 </div>
               )}
 
-              {activeTab === "scope" && (
-                <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr]">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                    <div className="mb-4 flex items-center gap-3"><Users className="h-5 w-5 text-cyan-700" /><h3 className="font-extrabold text-slate-950">User and project scope</h3></div>
-                    <p className="text-sm leading-6 text-slate-600">This tab will connect each role to allowed projects, areas, specialties, and individual user overrides. Keeping it here prevents permission logic from leaking back into Settings, Users, or Workflow Control.</p>
-                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                      {[
-                        ["Project scope", "All active projects"],
-                        ["Area scope", "Assigned areas only"],
-                        ["Override policy", "Admin approval required"],
-                      ].map(([label, value]) => (
-                        <div key={label} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100"><div className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</div><div className="mt-2 text-sm font-extrabold text-slate-900">{value}</div></div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                    <div className="mb-3 flex items-center gap-2 text-amber-900"><SlidersHorizontal className="h-5 w-5" /><div className="font-extrabold">Engineering note</div></div>
-                    <p className="text-sm leading-6 text-amber-950/80">In the backend phase, this screen should save to normalized tables: roles, permissions, role_permissions, role_menu_visibility, workflow_phase_owners, and user_project_assignments.</p>
-                  </div>
-                </div>
-              )}
             </div>
           </section>
         </div>

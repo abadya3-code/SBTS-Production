@@ -56,16 +56,12 @@ export function canActingUserEditAssignedPhase(
   owner: ProjectPhaseOwnerModel | undefined,
   user: ActingProjectUser,
 ): boolean {
-  if (!owner || owner.owners.length === 0) return true;
-  const principalTokens = [user.openId, user.name, user.email]
-    .map((value) => value?.trim().toLowerCase())
-    .filter((value): value is string => Boolean(value));
-  return owner.owners.some((assignee) => {
-    const ownerTokens = [assignee.openId, assignee.name, assignee.email]
-      .map((value) => value?.trim().toLowerCase())
-      .filter((value): value is string => Boolean(value));
-    return ownerTokens.some((token) => principalTokens.includes(token));
-  });
+  if (!owner || owner.owners.length === 0) return false;
+  const principalOpenId = user.openId.trim().toLowerCase();
+  if (!principalOpenId) return false;
+  return owner.owners.some(
+    (assignee) => assignee.openId.trim().toLowerCase() === principalOpenId,
+  );
 }
 
 function toNullableText(value: string | null | undefined): string | null {
@@ -126,7 +122,7 @@ async function updateProjectBlindCount(projectId: string): Promise<void> {
   ]);
   if (!projectRow[0]) return;
   const registeredCount = blindRows.length;
-  if (projectRow[0].blindsCount < registeredCount) {
+  if (projectRow[0].blindsCount !== registeredCount) {
     await db.update(projects).set({ blindsCount: registeredCount, updatedAt: new Date() }).where(eq(projects.id, projectId));
   }
 }

@@ -363,7 +363,9 @@ export const workflowRuntimeRouter = router({
           throw new Error(`Evidence file must be between 1 byte and ${policy.evidenceMaxFileSizeMb || 10} MB.`);
         }
         const safeName = input.fileName.replace(/[^A-Za-z0-9._-]+/g, "_");
-        const key = `workflow/${input.projectId}/${input.blindTag}/${input.phaseKey}/${Date.now()}-${safeName}`;
+        const safeProjectId = input.projectId.replace(/[^A-Za-z0-9._-]+/g, "_");
+        const safeBlindTag = input.blindTag.replace(/[^A-Za-z0-9._-]+/g, "_");
+        const key = `workflow/${safeProjectId}/${safeBlindTag}/${input.phaseKey}/${Date.now()}-${safeName}`;
         const stored = await storagePut(key, buffer, input.mimeType);
         return await createWorkflowEvidenceRecord({
           projectId: input.projectId,

@@ -52,7 +52,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { XLSX } from "@/lib/excel";
 import { SurveyDialog } from "@/components/blinds/SurveyDialog";
 import { BlindDetailSheet } from "@/components/blinds/BlindDetailSheet";
 
@@ -221,7 +221,7 @@ export default function Blinds() {
 
   // ─── Excel Export ──────────────────────────────────────────────────────────
 
-  function handleExportExcel() {
+  async function handleExportExcel() {
     const wb = XLSX.utils.book_new();
 
     // Summary sheet
@@ -300,7 +300,7 @@ export default function Blinds() {
       XLSX.utils.book_append_sheet(wb, ws4, "Survey History");
     }
 
-    XLSX.writeFile(wb, `SBTS_SlipBlinds_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    await XLSX.writeFile(wb, `SBTS_SlipBlinds_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success("Excel report exported");
   }
 

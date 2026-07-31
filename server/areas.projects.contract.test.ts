@@ -142,6 +142,7 @@ const createCaller = () =>
       avatarUrl: null,
       loginMethod: "test",
     },
+    access: { roleKeys: ["test"], permissionKeys: ["*"] },
   });
 
 describe("areas and projects API contracts", () => {

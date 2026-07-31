@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QRCode from "qrcode";
+import { releaseVersion } from "@/lib/release";
 
 export default function BlindCertificate() {
   const [, params] = useRoute("/certificate/:projectId/:tag");
@@ -32,7 +33,7 @@ export default function BlindCertificate() {
 
   const qrData = project && blind ? JSON.stringify({
     app: "SBTS",
-    v: (general as any)?.versionName || "1.0",
+    v: releaseVersion,
     certificateId: `CERT-${projectId.slice(0, 8)}-${tag}`,
     project: { id: projectId, name: (project as any).name },
     blind: { tag: blind.tag, type: blind.type, phase: blind.phase },

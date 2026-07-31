@@ -46,7 +46,9 @@ const findings = patterns.map(([label, pattern]) => {
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const report = `# Sprint 0 Baseline Report\n\nGenerated: ${new Date().toISOString()}\n\n## Application inventory\n\n- Package: ${packageJson.name} ${packageJson.version}\n- Source files: ${sourceFiles.length}\n- Client pages: ${clientPages.length}\n- Server routers: ${routers.length}\n- Automated tests: ${tests.length}\n- SQL migrations: ${migrations.length}\n\n## Baseline findings\n\n${findings.map((item) => `### ${item.label}\n\n- Count: ${item.count}\n- Example files: ${item.examples.length ? item.examples.map((f) => `\`${f}\``).join(", ") : "None"}\n`).join("\n")}\n## Sprint 0 controls\n\n- Canonical workflow specification: \`shared/workflowSpecification.ts\`\n- Workflow policy settings: database-backed singleton\n- Foundation migration: \`drizzle/0013_sprint0_sprint1_foundation.sql\`\n- Runtime domain migration: \`drizzle/0014_sprint2_workflow_runtime.sql\`\n- Verification command: \`pnpm verify\`\n\n## Known boundary\n\nThe canonical eight-phase runtime is authoritative after Migration 0014. The five legacy phase values remain as a synchronized compatibility projection for older reports and components until their removal in a later controlled migration; direct legacy phase changes are blocked.\n`;
 
-const docsDir = path.join(root, "docs");
-fs.mkdirSync(docsDir, { recursive: true });
-fs.writeFileSync(path.join(docsDir, "SPRINT0_BASELINE_REPORT.md"), report);
+if (process.argv.includes("--write")) {
+  const docsDir = path.join(root, "docs");
+  fs.mkdirSync(docsDir, { recursive: true });
+  fs.writeFileSync(path.join(docsDir, "SPRINT0_BASELINE_REPORT.md"), report);
+}
 console.log(report);

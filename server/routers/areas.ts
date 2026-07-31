@@ -6,18 +6,18 @@
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { permissionProcedure, router } from "../_core/trpc";
 import { createArea, getAreaById, getAreas } from "../db";
 import { areaCreateSchema } from "./shared";
 
 export const areasRouter = router({
-  list: protectedProcedure.query(async () => getAreas()),
+  list: permissionProcedure("projects.view").query(async () => getAreas()),
 
-  getById: protectedProcedure
+  getById: permissionProcedure("projects.view")
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ input }) => getAreaById(input.id)),
 
-  create: protectedProcedure
+  create: permissionProcedure("projects.create")
     .input(areaCreateSchema)
     .mutation(async ({ input }) => {
       try {

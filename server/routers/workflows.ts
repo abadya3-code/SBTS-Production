@@ -5,18 +5,18 @@
  */
 
 import { z } from "zod";
-import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
+import { adminProcedure, permissionProcedure, router } from "../_core/trpc";
 import { deleteWorkflow, getAllWorkflows, getWorkflowById, upsertWorkflow } from "../db";
 import { workflowTemplateSchema } from "./shared";
 
 export const workflowRouter = router({
-  list: protectedProcedure.query(async () => getAllWorkflows()),
+  list: permissionProcedure("workflow.view").query(async () => getAllWorkflows()),
 
-  get: protectedProcedure
+  get: permissionProcedure("workflow.view")
     .input(z.object({ id: z.string().min(1).max(96) }))
     .query(async ({ input }) => getWorkflowById(input.id)),
 
-  save: protectedProcedure
+  save: permissionProcedure("workflow.configure")
     .input(workflowTemplateSchema)
     .mutation(async ({ input, ctx }) => upsertWorkflow(input, ctx.user.openId)),
 

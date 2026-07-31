@@ -18,7 +18,7 @@ import {
   MapPinned, FolderKanban, ListChecks, X,
 } from "lucide-react";
 import ExportDialog, { type ExportOptions } from "@/components/reports/ExportDialog";
-import * as XLSX from "xlsx";
+import { XLSX } from "@/lib/excel";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -308,7 +308,7 @@ export default function Reports() {
       }
 
       const scopeLabel = scopes.length === 1 ? scopes[0] : "Multi-Scope";
-      XLSX.writeFile(wb, `SBTS-Report-${scopeLabel}-${ts}.xlsx`);
+      await XLSX.writeFile(wb, `SBTS-Report-${scopeLabel}-${ts}.xlsx`);
       return;
     }
 
@@ -346,7 +346,7 @@ export default function Reports() {
     }
   };
 
-  const handleExportExcel = (type: "projects" | "blinds" | "areas" | "full") => {
+  const handleExportExcel = async (type: "projects" | "blinds" | "areas" | "full") => {
     const wb = XLSX.utils.book_new();
     const ts = new Date().toISOString().slice(0, 10);
 
@@ -458,7 +458,7 @@ export default function Reports() {
       ? `SBTS-Full-Report-${ts}.xlsx`
       : `SBTS-${type.charAt(0).toUpperCase() + type.slice(1)}-Report-${ts}.xlsx`;
 
-    XLSX.writeFile(wb, filename);
+    await XLSX.writeFile(wb, filename);
   };
 
   // ─── CSV Export ──────────────────────────────────────────────────────────

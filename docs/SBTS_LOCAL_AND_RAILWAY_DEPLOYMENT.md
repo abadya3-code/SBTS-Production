@@ -1,5 +1,8 @@
 # SBTS Professional — Local & Railway Deployment Guide
 
+> Historical Sprint guide. For the executable SBTS 2.2.2 configuration, use
+> `RAILWAY_SETUP_AR.md` in the repository root.
+
 **Target release:** `2.0.0-beta.4`  
 **Stack:** React + Vite + Express + tRPC + Drizzle ORM + MySQL/TiDB + S3-compatible object storage
 
@@ -422,7 +425,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('base64url'))"
   "deploy": {
     "preDeployCommand": "pnpm db:migrate",
     "startCommand": "pnpm start",
-    "healthcheckPath": "/health"
+    "healthcheckPath": "/ready"
   }
 }
 ```
@@ -438,7 +441,7 @@ Settings → Deploy
 وتأكد من:
 
 ```text
-Healthcheck Path: /health
+Healthcheck Path: /ready
 Start Command: pnpm start
 Pre-Deploy Command: pnpm db:migrate
 ```

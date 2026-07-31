@@ -343,7 +343,7 @@ function GeneralSettingsTab() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Version Name</Label>
-              <Input value={form.versionName} onChange={e => setForm(f => f && ({ ...f, versionName: e.target.value }))} placeholder="Professional Edition v1.0" className="sbts-input" />
+              <Input value={form.versionName} onChange={e => setForm(f => f && ({ ...f, versionName: e.target.value }))} placeholder="Professional Edition" className="sbts-input" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Version Date</Label>

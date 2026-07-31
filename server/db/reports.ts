@@ -6,14 +6,15 @@
  * to support all report types and export formats.
  */
 
-import { asc, eq, gte, lte, and, inArray } from "drizzle-orm";
+import { asc, count, desc, eq, gte, lte, and, inArray, sql } from "drizzle-orm";
 import {
-  areas, blinds, blindPhaseApprovals, blindWorkflowLogs,
-  projectPhaseOwners, projects,
+  accessRoles, areas, blinds, blindPhaseApprovals, blindWorkflowLogs,
+  blindWorkflowRuntime, projectPhaseOwners, projects, workflowTransitionEvents,
 } from "../../drizzle/schema";
 import { requireDb } from "./core";
 import { blindPhaseOrder } from "./seed";
 import type { BlindPhase, BlindPriority } from "./types";
+import { canonicalPhaseKeys, canonicalWorkflowPhases } from "../../shared/workflowSpecification";
 
 // ─── Report Types ──────────────────────────────────────────────────────────
 
@@ -111,6 +112,119 @@ function emptyPriorityCounts(): Record<BlindPriority, number> {
 }
 
 // ─── Queries ───────────────────────────────────────────────────────────────
+
+/**
+ * Production dashboard snapshot based only on the canonical eight-phase
+ * runtime. Legacy blind.phase is never used to decide completion.
+ */
+export async function getDashboardSnapshot() {
+  const db = await requireDb();
+  const [
+    areaCountRows,
+    projectCountRows,
+    blindCountRows,
+    criticalCountRows,
+    runtimeCountRows,
+    roleCountRows,
+    phaseRows,
+    lifecycleRows,
+    recentEvents,
+    topBlinds,
+  ] = await Promise.all([
+    db.select({ value: count() }).from(areas),
+    db.select({ value: count() }).from(projects),
+    db.select({ value: count() }).from(blinds),
+    db.select({ value: count() }).from(blinds).where(eq(blinds.priority, "Critical")),
+    db.select({ value: count() }).from(blindWorkflowRuntime),
+    db.select({ value: count() }).from(accessRoles),
+    db
+      .select({ phaseKey: blindWorkflowRuntime.currentPhaseKey, value: count() })
+      .from(blindWorkflowRuntime)
+      .groupBy(blindWorkflowRuntime.currentPhaseKey),
+    db
+      .select({ lifecycleStatus: blindWorkflowRuntime.lifecycleStatus, value: count() })
+      .from(blindWorkflowRuntime)
+      .groupBy(blindWorkflowRuntime.lifecycleStatus),
+    db
+      .select({
+        date: workflowTransitionEvents.createdAt,
+        action: workflowTransitionEvents.actionKey,
+        status: workflowTransitionEvents.status,
+        actor: workflowTransitionEvents.actorName,
+        blindTag: workflowTransitionEvents.blindTag,
+        projectId: workflowTransitionEvents.projectId,
+        toPhaseKey: workflowTransitionEvents.toPhaseKey,
+      })
+      .from(workflowTransitionEvents)
+      .orderBy(desc(workflowTransitionEvents.createdAt))
+      .limit(12),
+    db
+      .select({
+        tag: blinds.tag,
+        projectId: projects.id,
+        projectName: projects.name,
+        areaId: areas.id,
+        areaName: areas.name,
+        priority: blinds.priority,
+        owner: blinds.owner,
+        phaseKey: blindWorkflowRuntime.currentPhaseKey,
+        lifecycleStatus: blindWorkflowRuntime.lifecycleStatus,
+        updatedAt: blinds.updatedAt,
+      })
+      .from(blinds)
+      .innerJoin(projects, eq(projects.id, blinds.projectId))
+      .innerJoin(areas, eq(areas.id, projects.areaId))
+      .leftJoin(blindWorkflowRuntime, eq(blindWorkflowRuntime.blindTag, blinds.tag))
+      .orderBy(
+        sql`FIELD(${blinds.priority}, 'Critical', 'High', 'Normal', 'Low')`,
+        desc(blinds.updatedAt),
+      )
+      .limit(12),
+  ]);
+
+  const totalBlinds = Number(blindCountRows[0]?.value ?? 0);
+  const runtimeCount = Number(runtimeCountRows[0]?.value ?? 0);
+  const lifecycleCounts = Object.fromEntries(
+    lifecycleRows.map((row) => [row.lifecycleStatus, Number(row.value)]),
+  ) as Record<string, number>;
+  const completedBlinds = lifecycleCounts.CLOSED ?? 0;
+  const plannedBlinds = lifecycleCounts.PLANNED ?? 0;
+  const inProgressBlinds = Math.max(0, runtimeCount - completedBlinds - plannedBlinds);
+  const phaseCountMap = new Map(phaseRows.map((row) => [String(row.phaseKey), Number(row.value)]));
+
+  return {
+    source: "canonical-runtime-v2" as const,
+    totalAreas: Number(areaCountRows[0]?.value ?? 0),
+    totalProjects: Number(projectCountRows[0]?.value ?? 0),
+    totalBlinds,
+    completedBlinds,
+    plannedBlinds,
+    inProgressBlinds,
+    criticalBlinds: Number(criticalCountRows[0]?.value ?? 0),
+    safetyHoldBlinds: lifecycleCounts.SAFETY_HOLD ?? 0,
+    uninitializedBlinds: Math.max(0, totalBlinds - runtimeCount),
+    activeRoles: Number(roleCountRows[0]?.value ?? 0),
+    completionRate: totalBlinds > 0 ? Math.round((completedBlinds / totalBlinds) * 100) : 0,
+    phases: canonicalWorkflowPhases.map((phase) => ({
+      key: phase.key,
+      label: phase.label,
+      shortLabel: phase.shortLabel,
+      ownerRoleKey: phase.ownerRoleKey,
+      color: phase.color,
+      count: phaseCountMap.get(phase.key) ?? 0,
+    })),
+    recentActivity: recentEvents.map((event) => ({
+      ...event,
+      actor: event.actor ?? "System",
+    })),
+    topBlinds: topBlinds.map((blind) => ({
+      ...blind,
+      phaseKey: canonicalPhaseKeys.includes(blind.phaseKey as (typeof canonicalPhaseKeys)[number])
+        ? blind.phaseKey
+        : null,
+    })),
+  };
+}
 
 /**
  * Get all blinds with full project/area context for reporting.
@@ -334,7 +448,7 @@ export async function getReportGlobalStats(): Promise<{
     db.select().from(areas),
     db.select().from(projects),
     db.select().from(blinds),
-    db.select().from(blindWorkflowLogs).orderBy(asc(blindWorkflowLogs.createdAt)).limit(20),
+    db.select().from(blindWorkflowLogs).orderBy(desc(blindWorkflowLogs.createdAt)).limit(20),
   ]);
 
   const phaseCounts = emptyPhaseCounts();
