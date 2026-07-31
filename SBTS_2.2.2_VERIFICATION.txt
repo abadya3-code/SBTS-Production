@@ -1,16 +1,16 @@
-SBTS 2.2.2 SPRINT 5 RECOVERY RC6 — LOCAL VERIFICATION
+SBTS 2.2.2 SPRINT 5 RECOVERY RC7 — LOCAL VERIFICATION
 Generated: 2026-08-01
 
 Release identity
   package.json: 2.2.2
   VERSION:      2.2.2
   server build: 2.2.2 + immutable build commit
-  release contract: PASSED (36 required files)
+  release contract: PASSED (37 required files)
 
 Foundation gate
   foundation verification components: PASSED
   TypeScript: PASSED (0 errors)
-  Vitest: PASSED (29 files, 267/267 tests)
+  Vitest: PASSED (29 files, 268/268 tests)
   Sprint 2 static: PASSED (73/73)
   Sprint 3 static: PASSED (40/40)
   Sprint 4 static: PASSED (66/66)
@@ -46,6 +46,12 @@ RC6 production startup correction
   production bundle no longer resolves package.json beneath /app/dist.
   Production startup smoke test: PASSED; /health returned HTTP 200 with
   status=ok, version=2.2.2, and the expected build commit.
+
+RC7 dashboard phase-column correction
+  workflow_transition_events now maps the physical fromPhaseKey and
+  toPhaseKey columns instead of the nonexistent phaseKey column. Generated
+  SQL regression coverage and the hosted schema contract both validate the
+  mapping. No database migration or data reset is required.
 
 Known scheduled work
   Sprint 6: canonical Reports unification and JavaScript route code-splitting.

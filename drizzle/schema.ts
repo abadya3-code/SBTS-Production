@@ -1,4 +1,14 @@
-import { date, decimal, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  date,
+  decimal,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -19,7 +29,9 @@ export const users = mysqlTable("users", {
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   /** Registration status: pending = awaiting admin approval, active = approved, rejected = denied */
-  userStatus: mysqlEnum("userStatus", ["pending", "active", "rejected"]).default("active").notNull(),
+  userStatus: mysqlEnum("userStatus", ["pending", "active", "rejected"])
+    .default("active")
+    .notNull(),
   /** Additional registration fields collected after OAuth */
   department: varchar("department", { length: 160 }),
   specialty: varchar("specialty", { length: 160 }),
@@ -44,18 +56,52 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
-export const workflowStatusEnum = mysqlEnum("status", ["Draft", "Active", "Locked"]);
-export const workflowPhaseKeyEnum = mysqlEnum("phaseKey", [
-  // Legacy phase keys retained during the controlled migration window.
-  "broken", "assembly", "tightTorque", "finalTight", "inspectionReady",
-  // Canonical Sprint 1 workflow keys.
-  "operationsInitialIsolation", "blindInstallation", "mechanicalVerification", "internalInspection",
-  "reinstatementPreparation", "blindRemovalReinstatement", "reinstatementVerification",
-  "finalApprovalReturnToService",
+export const workflowStatusEnum = mysqlEnum("status", [
+  "Draft",
+  "Active",
+  "Locked",
 ]);
-export const projectStatusEnum = mysqlEnum("projectStatus", ["Active", "Completed", "On Hold", "Planning", "Final Review"]);
-export const blindPhaseEnum = mysqlEnum("blindPhase", ["Broken / Preparation", "Assembly", "Tight & Torque", "Final Tight", "Inspection Ready"]);
-export const blindPriorityEnum = mysqlEnum("blindPriority", ["Low", "Normal", "High", "Critical"]);
+export const workflowPhaseKeyValues = [
+  // Legacy phase keys retained during the controlled migration window.
+  "broken",
+  "assembly",
+  "tightTorque",
+  "finalTight",
+  "inspectionReady",
+  // Canonical Sprint 1 workflow keys.
+  "operationsInitialIsolation",
+  "blindInstallation",
+  "mechanicalVerification",
+  "internalInspection",
+  "reinstatementPreparation",
+  "blindRemovalReinstatement",
+  "reinstatementVerification",
+  "finalApprovalReturnToService",
+] as const;
+export const workflowPhaseKeyEnum = mysqlEnum(
+  "phaseKey",
+  workflowPhaseKeyValues
+);
+export const projectStatusEnum = mysqlEnum("projectStatus", [
+  "Active",
+  "Completed",
+  "On Hold",
+  "Planning",
+  "Final Review",
+]);
+export const blindPhaseEnum = mysqlEnum("blindPhase", [
+  "Broken / Preparation",
+  "Assembly",
+  "Tight & Torque",
+  "Final Tight",
+  "Inspection Ready",
+]);
+export const blindPriorityEnum = mysqlEnum("blindPriority", [
+  "Low",
+  "Normal",
+  "High",
+  "Critical",
+]);
 
 /**
  * Physical plant areas. Areas are first-class operational containers so projects can be browsed
@@ -108,7 +154,9 @@ export const blinds = mysqlTable("blinds", {
   equipment: varchar("lineNumber", { length: 120 }),
   location: varchar("location", { length: 220 }),
   isolationPoint: varchar("isolationPoint", { length: 220 }),
-  slipMetalForemanApproved: int("slipMetalForemanApproved").default(0).notNull(),
+  slipMetalForemanApproved: int("slipMetalForemanApproved")
+    .default(0)
+    .notNull(),
   slipBlindMerged: int("slipBlindMerged").default(0).notNull(),
   notes: text("notes"),
   // Industrial Specifications (added for Blind Detail Hub)
@@ -132,23 +180,32 @@ export const blinds = mysqlTable("blinds", {
  * Project-specific phase owners. These settings make each project able to assign one named owner
  * per blind phase while preserving the central workflow vocabulary used by the registry.
  */
-export const projectPhaseOwners = mysqlTable("project_phase_owners", {
-  id: int("id").autoincrement().primaryKey(),
-  projectId: varchar("projectId", { length: 40 })
-    .notNull()
-    .references(() => projects.id),
-  phase: blindPhaseEnum.notNull(),
-  ownerName: varchar("ownerName", { length: 160 }).notNull(),
-  ownerRole: varchar("ownerRole", { length: 120 }).notNull(),
-  phaseColor: varchar("phaseColor", { length: 24 }).default("#f59e0b").notNull(),
-  ownersJson: text("ownersJson"),
-  createdByOpenId: varchar("createdByOpenId", { length: 64 }),
-  updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  projectPhaseUnique: uniqueIndex("project_phase_owner_unique").on(table.projectId, table.phase),
-}));
+export const projectPhaseOwners = mysqlTable(
+  "project_phase_owners",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    phase: blindPhaseEnum.notNull(),
+    ownerName: varchar("ownerName", { length: 160 }).notNull(),
+    ownerRole: varchar("ownerRole", { length: 120 }).notNull(),
+    phaseColor: varchar("phaseColor", { length: 24 })
+      .default("#f59e0b")
+      .notNull(),
+    ownersJson: text("ownersJson"),
+    createdByOpenId: varchar("createdByOpenId", { length: 64 }),
+    updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    projectPhaseUnique: uniqueIndex("project_phase_owner_unique").on(
+      table.projectId,
+      table.phase
+    ),
+  })
+);
 
 /**
  * Project-level operational settings. Phase assignees stay in project_phase_owners;
@@ -188,26 +245,33 @@ export const blindWorkflowLogs = mysqlTable("blind_workflow_logs", {
  * Electronic phase approvals for each blind. One row per blind and phase keeps sign-off
  * state traceable while the workflow log records every approval or revocation event.
  */
-export const blindPhaseApprovals = mysqlTable("blind_phase_approvals", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 })
-    .notNull()
-    .references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 })
-    .notNull()
-    .references(() => projects.id),
-  phase: blindPhaseEnum.notNull(),
-  approved: int("approved").default(1).notNull(),
-  approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
-  approvedByName: varchar("approvedByName", { length: 160 }),
-  note: text("note"),
-  approvedAt: timestamp("approvedAt"),
-  revokedAt: timestamp("revokedAt"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  blindPhaseApprovalUnique: uniqueIndex("blind_phase_approval_unique").on(table.blindTag, table.phase),
-}));
+export const blindPhaseApprovals = mysqlTable(
+  "blind_phase_approvals",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    phase: blindPhaseEnum.notNull(),
+    approved: int("approved").default(1).notNull(),
+    approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
+    approvedByName: varchar("approvedByName", { length: 160 }),
+    note: text("note"),
+    approvedAt: timestamp("approvedAt"),
+    revokedAt: timestamp("revokedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    blindPhaseApprovalUnique: uniqueIndex("blind_phase_approval_unique").on(
+      table.blindTag,
+      table.phase
+    ),
+  })
+);
 
 /**
  * Central permission catalog used by Access Control and Workflow Studio.
@@ -280,7 +344,9 @@ export const workflowPhases = mysqlTable("workflow_phases", {
   label: varchar("label", { length: 220 }).notNull(),
   phaseKey: workflowPhaseKeyEnum.notNull(),
   roleKey: varchar("roleKey", { length: 80 }).notNull(),
-  requiredPermissionKey: varchar("requiredPermissionKey", { length: 120 }).notNull(),
+  requiredPermissionKey: varchar("requiredPermissionKey", {
+    length: 120,
+  }).notNull(),
   gate: text("gate").notNull(),
   purpose: text("purpose"),
   actionKey: varchar("actionKey", { length: 120 }),
@@ -316,7 +382,8 @@ export type InsertAccessPermission = typeof accessPermissions.$inferInsert;
 export type AccessRoleRow = typeof accessRoles.$inferSelect;
 export type InsertAccessRole = typeof accessRoles.$inferInsert;
 export type AccessRolePermissionRow = typeof accessRolePermissions.$inferSelect;
-export type InsertAccessRolePermission = typeof accessRolePermissions.$inferInsert;
+export type InsertAccessRolePermission =
+  typeof accessRolePermissions.$inferInsert;
 export type WorkflowTemplateRow = typeof workflowTemplates.$inferSelect;
 export type InsertWorkflowTemplate = typeof workflowTemplates.$inferInsert;
 export type WorkflowPhaseRow = typeof workflowPhases.$inferSelect;
@@ -341,7 +408,9 @@ export const slipBlindSurveys = mysqlTable("slip_blind_surveys", {
   criticalCount: int("criticalCount").default(0).notNull(),
   notes: text("notes"),
   surveyDataJson: text("surveyDataJson"),
-  status: mysqlEnum("status", ["draft", "submitted", "approved"]).default("submitted").notNull(),
+  status: mysqlEnum("status", ["draft", "submitted", "approved"])
+    .default("submitted")
+    .notNull(),
   approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
   approvedAt: timestamp("approvedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -356,9 +425,23 @@ export const slipBlindSurveyItems = mysqlTable("slip_blind_survey_items", {
   surveyId: int("surveyId").notNull(),
   blindTag: varchar("blindTag", { length: 40 }).notNull(),
   projectId: varchar("projectId", { length: 40 }).notNull(),
-  slipStatus: mysqlEnum("slipStatus", ["in_service", "removed", "merged", "unknown"]).default("in_service").notNull(),
+  slipStatus: mysqlEnum("slipStatus", [
+    "in_service",
+    "removed",
+    "merged",
+    "unknown",
+  ])
+    .default("in_service")
+    .notNull(),
   foremanApproved: int("foremanApproved").default(0).notNull(),
-  physicalCondition: mysqlEnum("physicalCondition", ["good", "fair", "damaged", "missing"]).default("good").notNull(),
+  physicalCondition: mysqlEnum("physicalCondition", [
+    "good",
+    "fair",
+    "damaged",
+    "missing",
+  ])
+    .default("good")
+    .notNull(),
   location: varchar("location", { length: 220 }),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -367,7 +450,8 @@ export const slipBlindSurveyItems = mysqlTable("slip_blind_survey_items", {
 export type SlipBlindSurveyRow = typeof slipBlindSurveys.$inferSelect;
 export type InsertSlipBlindSurvey = typeof slipBlindSurveys.$inferInsert;
 export type SlipBlindSurveyItemRow = typeof slipBlindSurveyItems.$inferSelect;
-export type InsertSlipBlindSurveyItem = typeof slipBlindSurveyItems.$inferInsert;
+export type InsertSlipBlindSurveyItem =
+  typeof slipBlindSurveyItems.$inferInsert;
 
 /**
  * System-wide general settings. One row per system (singleton pattern).
@@ -376,38 +460,58 @@ export type InsertSlipBlindSurveyItem = typeof slipBlindSurveyItems.$inferInsert
 export const systemSettings = mysqlTable("system_settings", {
   id: int("id").autoincrement().primaryKey(),
   // Company Info
-  companyName: varchar("companyName", { length: 200 }).default("Shedgum Gas Plant").notNull(),
+  companyName: varchar("companyName", { length: 200 })
+    .default("Shedgum Gas Plant")
+    .notNull(),
   companyCode: varchar("companyCode", { length: 40 }).default("SGP").notNull(),
-  plantName: varchar("plantName", { length: 200 }).default("Shedgum Gas Plant").notNull(),
+  plantName: varchar("plantName", { length: 200 })
+    .default("Shedgum Gas Plant")
+    .notNull(),
   contractNumber: varchar("contractNumber", { length: 100 }),
   // Localization and application appearance
   language: varchar("language", { length: 10 }).default("en").notNull(),
-  timezone: varchar("timezone", { length: 80 }).default("Asia/Riyadh").notNull(),
-  dateFormat: varchar("dateFormat", { length: 40 }).default("DD/MM/YYYY").notNull(),
-  defaultTheme: varchar("defaultTheme", { length: 20 }).default("standard").notNull(),
+  timezone: varchar("timezone", { length: 80 })
+    .default("Asia/Riyadh")
+    .notNull(),
+  dateFormat: varchar("dateFormat", { length: 40 })
+    .default("DD/MM/YYYY")
+    .notNull(),
+  defaultTheme: varchar("defaultTheme", { length: 20 })
+    .default("standard")
+    .notNull(),
   allowUserThemeOverride: int("allowUserThemeOverride").default(1).notNull(),
   // Notifications
   emailNotifications: int("emailNotifications").default(1).notNull(),
   phaseChangeAlerts: int("phaseChangeAlerts").default(1).notNull(),
   criticalPriorityAlerts: int("criticalPriorityAlerts").default(1).notNull(),
   // System
-  systemVersion: varchar("systemVersion", { length: 40 }).default("1.0.0").notNull(),
+  systemVersion: varchar("systemVersion", { length: 40 })
+    .default("1.0.0")
+    .notNull(),
   maintenanceMode: int("maintenanceMode").default(0).notNull(),
   // App Branding & Identity
-  appName: varchar("appName", { length: 200 }).default("SBTS Professional").notNull(),
+  appName: varchar("appName", { length: 200 })
+    .default("SBTS Professional")
+    .notNull(),
   appDescription: text("appDescription"),
   appImageUrl: text("appImageUrl"),
   companyLogoUrl: text("companyLogoUrl"),
   companyDescription: text("companyDescription"),
   regionName: varchar("regionName", { length: 200 }).default(""),
   // Dashboard Hero
-  dashboardHeroTitle: varchar("dashboardHeroTitle", { length: 500 }).default("SBTS command center rebuilt for maintainable React architecture."),
+  dashboardHeroTitle: varchar("dashboardHeroTitle", { length: 500 }).default(
+    "SBTS command center rebuilt for maintainable React architecture."
+  ),
   dashboardHeroDescription: text("dashboardHeroDescription"),
-  dashboardHeroBadge: varchar("dashboardHeroBadge", { length: 200 }).default("Access-first migration"),
+  dashboardHeroBadge: varchar("dashboardHeroBadge", { length: 200 }).default(
+    "Access-first migration"
+  ),
   dashboardHeroImageUrl: text("dashboardHeroImageUrl"),
   dashboardCtaButtons: text("dashboardCtaButtons"), // JSON array [{label, href, variant}]
   // Version
-  versionName: varchar("versionName", { length: 100 }).default("Professional Edition"),
+  versionName: varchar("versionName", { length: 100 }).default(
+    "Professional Edition"
+  ),
   versionDate: varchar("versionDate", { length: 40 }),
   updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -424,128 +528,347 @@ export const systemSettings = mysqlTable("system_settings", {
  */
 export const workflowPolicySettings = mysqlTable("workflow_policy_settings", {
   id: int("id").autoincrement().primaryKey(),
-  activeWorkflowTemplateId: varchar("activeWorkflowTemplateId", { length: 96 }).default("wf-sbts-standard-v2").notNull(),
+  activeWorkflowTemplateId: varchar("activeWorkflowTemplateId", { length: 96 })
+    .default("wf-sbts-standard-v2")
+    .notNull(),
   enforceServerGates: int("enforceServerGates").default(1).notNull(),
-  requireIndependentVerifier: int("requireIndependentVerifier").default(1).notNull(),
+  requireIndependentVerifier: int("requireIndependentVerifier")
+    .default(1)
+    .notNull(),
   requirePtwActive: int("requirePtwActive").default(1).notNull(),
   requireLotoActive: int("requireLotoActive").default(1).notNull(),
   requireGasTestForEntry: int("requireGasTestForEntry").default(1).notNull(),
-  requireGasTestForDeBlinding: int("requireGasTestForDeBlinding").default(1).notNull(),
-  defaultGasTestValidityMinutes: int("defaultGasTestValidityMinutes").default(240).notNull(),
-  gasTestExpiryWarningMinutes: int("gasTestExpiryWarningMinutes").default(30).notNull(),
+  requireGasTestForDeBlinding: int("requireGasTestForDeBlinding")
+    .default(1)
+    .notNull(),
+  defaultGasTestValidityMinutes: int("defaultGasTestValidityMinutes")
+    .default(240)
+    .notNull(),
+  gasTestExpiryWarningMinutes: int("gasTestExpiryWarningMinutes")
+    .default(30)
+    .notNull(),
   safetyHoldEnabled: int("safetyHoldEnabled").default(1).notNull(),
-  holdReleaseRequiresIndependentApproval: int("holdReleaseRequiresIndependentApproval").default(1).notNull(),
-  metalForemanRequiredForSlipBlind: int("metalForemanRequiredForSlipBlind").default(1).notNull(),
-  operationsForemanFinalApprover: int("operationsForemanFinalApprover").default(1).notNull(),
-  certificateRequiresLeakTest: int("certificateRequiresLeakTest").default(1).notNull(),
+  holdReleaseRequiresIndependentApproval: int(
+    "holdReleaseRequiresIndependentApproval"
+  )
+    .default(1)
+    .notNull(),
+  metalForemanRequiredForSlipBlind: int("metalForemanRequiredForSlipBlind")
+    .default(1)
+    .notNull(),
+  operationsForemanFinalApprover: int("operationsForemanFinalApprover")
+    .default(1)
+    .notNull(),
+  certificateRequiresLeakTest: int("certificateRequiresLeakTest")
+    .default(1)
+    .notNull(),
   allowPhaseReopen: int("allowPhaseReopen").default(1).notNull(),
-  phaseReopenRequiresApproval: int("phaseReopenRequiresApproval").default(1).notNull(),
+  phaseReopenRequiresApproval: int("phaseReopenRequiresApproval")
+    .default(1)
+    .notNull(),
   showBlockingReasons: int("showBlockingReasons").default(1).notNull(),
   enableFieldMode: int("enableFieldMode").default(1).notNull(),
-  requireIsolationPackageForEntry: int("requireIsolationPackageForEntry").default(1).notNull(),
-  requireLineBreakingPermit: int("requireLineBreakingPermit").default(1).notNull(),
-  requireGasTestForLineBreaking: int("requireGasTestForLineBreaking").default(0).notNull(),
-  requireTorqueCalibration: int("requireTorqueCalibration").default(1).notNull(),
-  requireInstallationTorque: int("requireInstallationTorque").default(1).notNull(),
-  requireReinstatementTorque: int("requireReinstatementTorque").default(1).notNull(),
-  requireSequentialFinalApprovals: int("requireSequentialFinalApprovals").default(1).notNull(),
-  requireLotoReleasedForCloseout: int("requireLotoReleasedForCloseout").default(1).notNull(),
-  blockTransitionWhenPermitExpired: int("blockTransitionWhenPermitExpired").default(1).notNull(),
-  allowAdminWorkflowOverride: int("allowAdminWorkflowOverride").default(0).notNull(),
+  requireIsolationPackageForEntry: int("requireIsolationPackageForEntry")
+    .default(1)
+    .notNull(),
+  requireLineBreakingPermit: int("requireLineBreakingPermit")
+    .default(1)
+    .notNull(),
+  requireGasTestForLineBreaking: int("requireGasTestForLineBreaking")
+    .default(0)
+    .notNull(),
+  requireTorqueCalibration: int("requireTorqueCalibration")
+    .default(1)
+    .notNull(),
+  requireInstallationTorque: int("requireInstallationTorque")
+    .default(1)
+    .notNull(),
+  requireReinstatementTorque: int("requireReinstatementTorque")
+    .default(1)
+    .notNull(),
+  requireSequentialFinalApprovals: int("requireSequentialFinalApprovals")
+    .default(1)
+    .notNull(),
+  requireLotoReleasedForCloseout: int("requireLotoReleasedForCloseout")
+    .default(1)
+    .notNull(),
+  blockTransitionWhenPermitExpired: int("blockTransitionWhenPermitExpired")
+    .default(1)
+    .notNull(),
+  allowAdminWorkflowOverride: int("allowAdminWorkflowOverride")
+    .default(0)
+    .notNull(),
   showGateReadinessPanel: int("showGateReadinessPanel").default(1).notNull(),
-  showLegacyPhaseReference: int("showLegacyPhaseReference").default(0).notNull(),
-  workflowUiDensity: varchar("workflowUiDensity", { length: 20 }).default("comfortable").notNull(),
-  safetyBannerMode: varchar("safetyBannerMode", { length: 20 }).default("prominent").notNull(),
-  authorizedGasTesterRoleKey: varchar("authorizedGasTesterRoleKey", { length: 80 }).default("gasTester").notNull(),
-  gasTestRequiresInstrumentCalibration: int("gasTestRequiresInstrumentCalibration").default(1).notNull(),
+  showLegacyPhaseReference: int("showLegacyPhaseReference")
+    .default(0)
+    .notNull(),
+  workflowUiDensity: varchar("workflowUiDensity", { length: 20 })
+    .default("comfortable")
+    .notNull(),
+  safetyBannerMode: varchar("safetyBannerMode", { length: 20 })
+    .default("prominent")
+    .notNull(),
+  authorizedGasTesterRoleKey: varchar("authorizedGasTesterRoleKey", {
+    length: 80,
+  })
+    .default("gasTester")
+    .notNull(),
+  gasTestRequiresInstrumentCalibration: int(
+    "gasTestRequiresInstrumentCalibration"
+  )
+    .default(1)
+    .notNull(),
   gasTestLimitsConfigured: int("gasTestLimitsConfigured").default(0).notNull(),
-  gasTestOxygenMinPercent: decimal("gasTestOxygenMinPercent", { precision: 6, scale: 2 }),
-  gasTestOxygenMaxPercent: decimal("gasTestOxygenMaxPercent", { precision: 6, scale: 2 }),
-  gasTestMaxLelPercent: decimal("gasTestMaxLelPercent", { precision: 6, scale: 2 }),
+  gasTestOxygenMinPercent: decimal("gasTestOxygenMinPercent", {
+    precision: 6,
+    scale: 2,
+  }),
+  gasTestOxygenMaxPercent: decimal("gasTestOxygenMaxPercent", {
+    precision: 6,
+    scale: 2,
+  }),
+  gasTestMaxLelPercent: decimal("gasTestMaxLelPercent", {
+    precision: 6,
+    scale: 2,
+  }),
   gasTestMaxH2sPpm: decimal("gasTestMaxH2sPpm", { precision: 8, scale: 2 }),
   gasTestMaxCoPpm: decimal("gasTestMaxCoPpm", { precision: 8, scale: 2 }),
-  entryReadinessValidityMinutes: int("entryReadinessValidityMinutes").default(720).notNull(),
-  isolationPackageIdPrefix: varchar("isolationPackageIdPrefix", { length: 20 }).default("VIP").notNull(),
-  preventBlindInMultipleActivePackages: int("preventBlindInMultipleActivePackages").default(1).notNull(),
-  requireEvidenceBeforePhaseSubmit: int("requireEvidenceBeforePhaseSubmit").default(0).notNull(),
+  entryReadinessValidityMinutes: int("entryReadinessValidityMinutes")
+    .default(720)
+    .notNull(),
+  isolationPackageIdPrefix: varchar("isolationPackageIdPrefix", { length: 20 })
+    .default("VIP")
+    .notNull(),
+  preventBlindInMultipleActivePackages: int(
+    "preventBlindInMultipleActivePackages"
+  )
+    .default(1)
+    .notNull(),
+  requireEvidenceBeforePhaseSubmit: int("requireEvidenceBeforePhaseSubmit")
+    .default(0)
+    .notNull(),
   evidenceMaxFileSizeMb: int("evidenceMaxFileSizeMb").default(10).notNull(),
   evidenceAllowedMimeTypesJson: text("evidenceAllowedMimeTypesJson"),
-  defaultTorqueUnit: varchar("defaultTorqueUnit", { length: 20 }).default("N·m").notNull(),
-  defaultPumpPressureUnit: varchar("defaultPumpPressureUnit", { length: 20 }).default("psi").notNull(),
-  fieldRecordEditorMode: varchar("fieldRecordEditorMode", { length: 20 }).default("dialog").notNull(),
-  certificateNumberPrefix: varchar("certificateNumberPrefix", { length: 20 }).default("CERT").notNull(),
-  certificateVerificationEnabled: int("certificateVerificationEnabled").default(1).notNull(),
-  certificateRequireClosedWorkflow: int("certificateRequireClosedWorkflow").default(1).notNull(),
-  certificateReissueRequiresReason: int("certificateReissueRequiresReason").default(1).notNull(),
-  certificateAllowRevocation: int("certificateAllowRevocation").default(1).notNull(),
-  certificatePublicBaseUrl: varchar("certificatePublicBaseUrl", { length: 500 }),
-  defectNumberPrefix: varchar("defectNumberPrefix", { length: 20 }).default("DEF").notNull(),
-  punchNumberPrefix: varchar("punchNumberPrefix", { length: 20 }).default("PCH").notNull(),
-  ndtNumberPrefix: varchar("ndtNumberPrefix", { length: 20 }).default("NDT").notNull(),
-  requireDefectDispositionBeforeClosure: int("requireDefectDispositionBeforeClosure").default(1).notNull(),
-  requireMandatoryPunchClosureBeforeReadyForClosure: int("requireMandatoryPunchClosureBeforeReadyForClosure").default(1).notNull(),
-  requireNdtAcceptanceBeforeReadyForClosure: int("requireNdtAcceptanceBeforeReadyForClosure").default(1).notNull(),
+  defaultTorqueUnit: varchar("defaultTorqueUnit", { length: 20 })
+    .default("N·m")
+    .notNull(),
+  defaultPumpPressureUnit: varchar("defaultPumpPressureUnit", { length: 20 })
+    .default("psi")
+    .notNull(),
+  fieldRecordEditorMode: varchar("fieldRecordEditorMode", { length: 20 })
+    .default("dialog")
+    .notNull(),
+  certificateNumberPrefix: varchar("certificateNumberPrefix", { length: 20 })
+    .default("CERT")
+    .notNull(),
+  certificateVerificationEnabled: int("certificateVerificationEnabled")
+    .default(1)
+    .notNull(),
+  certificateRequireClosedWorkflow: int("certificateRequireClosedWorkflow")
+    .default(1)
+    .notNull(),
+  certificateReissueRequiresReason: int("certificateReissueRequiresReason")
+    .default(1)
+    .notNull(),
+  certificateAllowRevocation: int("certificateAllowRevocation")
+    .default(1)
+    .notNull(),
+  certificatePublicBaseUrl: varchar("certificatePublicBaseUrl", {
+    length: 500,
+  }),
+  defectNumberPrefix: varchar("defectNumberPrefix", { length: 20 })
+    .default("DEF")
+    .notNull(),
+  punchNumberPrefix: varchar("punchNumberPrefix", { length: 20 })
+    .default("PCH")
+    .notNull(),
+  ndtNumberPrefix: varchar("ndtNumberPrefix", { length: 20 })
+    .default("NDT")
+    .notNull(),
+  requireDefectDispositionBeforeClosure: int(
+    "requireDefectDispositionBeforeClosure"
+  )
+    .default(1)
+    .notNull(),
+  requireMandatoryPunchClosureBeforeReadyForClosure: int(
+    "requireMandatoryPunchClosureBeforeReadyForClosure"
+  )
+    .default(1)
+    .notNull(),
+  requireNdtAcceptanceBeforeReadyForClosure: int(
+    "requireNdtAcceptanceBeforeReadyForClosure"
+  )
+    .default(1)
+    .notNull(),
   allowPunchTransfer: int("allowPunchTransfer").default(1).notNull(),
   updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type WorkflowPolicySettingsRow = typeof workflowPolicySettings.$inferSelect;
-export type InsertWorkflowPolicySettings = typeof workflowPolicySettings.$inferInsert;
+export type WorkflowPolicySettingsRow =
+  typeof workflowPolicySettings.$inferSelect;
+export type InsertWorkflowPolicySettings =
+  typeof workflowPolicySettings.$inferInsert;
 
 // ─── Sprint 2 runtime workflow domain ────────────────────────────────────────
 // Legacy blind.phase remains available during migration. Runtime workflow state
 // is authoritative for the eight-phase lifecycle and is versioned independently.
 export const workflowLifecycleStatusEnum = mysqlEnum("lifecycleStatus", [
-  "PLANNED", "INITIAL_ISOLATION", "READY_FOR_BLIND_INSTALLATION", "BLIND_INSTALLED",
-  "MECHANICAL_VERIFICATION_PENDING", "ACTIVE_ISOLATION", "ENTRY_AUTHORIZED",
-  "WORK_IN_PROGRESS", "READY_FOR_CLOSURE", "READY_FOR_BLIND_REMOVAL", "REINSTATED",
-  "LEAK_TEST_PENDING", "READY_FOR_SERVICE", "CLOSED", "SAFETY_HOLD",
+  "PLANNED",
+  "INITIAL_ISOLATION",
+  "READY_FOR_BLIND_INSTALLATION",
+  "BLIND_INSTALLED",
+  "MECHANICAL_VERIFICATION_PENDING",
+  "ACTIVE_ISOLATION",
+  "ENTRY_AUTHORIZED",
+  "WORK_IN_PROGRESS",
+  "READY_FOR_CLOSURE",
+  "READY_FOR_BLIND_REMOVAL",
+  "REINSTATED",
+  "LEAK_TEST_PENDING",
+  "READY_FOR_SERVICE",
+  "CLOSED",
+  "SAFETY_HOLD",
 ]);
 export const phaseInstanceStatusEnum = mysqlEnum("phaseInstanceStatus", [
-  "pending", "current", "completed", "blocked", "rework", "skipped",
+  "pending",
+  "current",
+  "completed",
+  "blocked",
+  "rework",
+  "skipped",
 ]);
 export const transitionEventStatusEnum = mysqlEnum("transitionEventStatus", [
-  "accepted", "rejected", "override",
+  "accepted",
+  "rejected",
+  "override",
 ]);
-export const projectWorkflowAssignmentStatusEnum = mysqlEnum("assignmentStatus", [
-  "active", "migrating", "locked",
-]);
+export const projectWorkflowAssignmentStatusEnum = mysqlEnum(
+  "assignmentStatus",
+  ["active", "migrating", "locked"]
+);
 export const complianceRecordStatusEnum = mysqlEnum("recordStatus", [
-  "draft", "active", "valid", "expired", "closed", "cancelled", "rejected",
+  "draft",
+  "active",
+  "valid",
+  "expired",
+  "closed",
+  "cancelled",
+  "rejected",
 ]);
-export const torqueRecordStageEnum = mysqlEnum("torqueStage", ["installation", "reinstatement"]);
-export const torqueRecordStatusEnum = mysqlEnum("torqueStatus", ["draft", "submitted", "accepted", "rejected"]);
-export const safetyHoldStatusEnum = mysqlEnum("holdStatus", ["active", "release_pending", "released", "rejected"]);
-export const approvalStepStatusEnum = mysqlEnum("approvalStatus", ["pending", "approved", "rejected", "revoked", "not_required"]);
+export const torqueRecordStageEnum = mysqlEnum("torqueStage", [
+  "installation",
+  "reinstatement",
+]);
+export const torqueRecordStatusEnum = mysqlEnum("torqueStatus", [
+  "draft",
+  "submitted",
+  "accepted",
+  "rejected",
+]);
+export const safetyHoldStatusEnum = mysqlEnum("holdStatus", [
+  "active",
+  "release_pending",
+  "released",
+  "rejected",
+]);
+export const approvalStepStatusEnum = mysqlEnum("approvalStatus", [
+  "pending",
+  "approved",
+  "rejected",
+  "revoked",
+  "not_required",
+]);
 export const isolationPackageStatusEnum = mysqlEnum("packageStatus", [
-  "draft", "active", "entry_authorized", "work_in_progress", "ready_for_removal",
-  "reinstated", "ready_for_service", "closed", "on_hold",
+  "draft",
+  "active",
+  "entry_authorized",
+  "work_in_progress",
+  "ready_for_removal",
+  "reinstated",
+  "ready_for_service",
+  "closed",
+  "on_hold",
 ]);
-export const entryReadinessStatusEnum = mysqlEnum("entryReadinessStatus", ["draft", "ready", "authorized", "rejected", "expired"]);
-export const leakTestStatusEnum = mysqlEnum("leakTestStatus", ["draft", "in_progress", "passed", "failed", "cancelled"]);
-export const certificateRecordStatusEnum = mysqlEnum("certificateRecordStatus", ["issued", "superseded", "revoked"]);
-export const qualitySeverityEnum = mysqlEnum("qualitySeverity", ["low", "medium", "high", "critical"]);
-export const defectStatusEnum = mysqlEnum("defectStatus", ["open", "under_review", "accepted_as_is", "repair_required", "closed", "transferred", "cancelled"]);
-export const punchStatusEnum = mysqlEnum("punchStatus", ["open", "in_progress", "ready_for_verification", "closed", "transferred", "cancelled"]);
-export const ndtStatusEnum = mysqlEnum("ndtStatus", ["planned", "in_progress", "passed", "failed", "retest_required", "cancelled"]);
+export const entryReadinessStatusEnum = mysqlEnum("entryReadinessStatus", [
+  "draft",
+  "ready",
+  "authorized",
+  "rejected",
+  "expired",
+]);
+export const leakTestStatusEnum = mysqlEnum("leakTestStatus", [
+  "draft",
+  "in_progress",
+  "passed",
+  "failed",
+  "cancelled",
+]);
+export const certificateRecordStatusEnum = mysqlEnum(
+  "certificateRecordStatus",
+  ["issued", "superseded", "revoked"]
+);
+export const qualitySeverityEnum = mysqlEnum("qualitySeverity", [
+  "low",
+  "medium",
+  "high",
+  "critical",
+]);
+export const defectStatusEnum = mysqlEnum("defectStatus", [
+  "open",
+  "under_review",
+  "accepted_as_is",
+  "repair_required",
+  "closed",
+  "transferred",
+  "cancelled",
+]);
+export const punchStatusEnum = mysqlEnum("punchStatus", [
+  "open",
+  "in_progress",
+  "ready_for_verification",
+  "closed",
+  "transferred",
+  "cancelled",
+]);
+export const ndtStatusEnum = mysqlEnum("ndtStatus", [
+  "planned",
+  "in_progress",
+  "passed",
+  "failed",
+  "retest_required",
+  "cancelled",
+]);
 
-export const projectWorkflowAssignments = mysqlTable("project_workflow_assignments", {
-  projectId: varchar("projectId", { length: 40 }).primaryKey().references(() => projects.id),
-  workflowTemplateId: varchar("workflowTemplateId", { length: 96 }).notNull().references(() => workflowTemplates.id),
-  workflowVersion: varchar("workflowVersion", { length: 32 }).notNull(),
-  status: projectWorkflowAssignmentStatusEnum.default("active").notNull(),
-  migrationVersion: int("migrationVersion").default(2).notNull(),
-  assignedByOpenId: varchar("assignedByOpenId", { length: 64 }),
-  assignedAt: timestamp("assignedAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const projectWorkflowAssignments = mysqlTable(
+  "project_workflow_assignments",
+  {
+    projectId: varchar("projectId", { length: 40 })
+      .primaryKey()
+      .references(() => projects.id),
+    workflowTemplateId: varchar("workflowTemplateId", { length: 96 })
+      .notNull()
+      .references(() => workflowTemplates.id),
+    workflowVersion: varchar("workflowVersion", { length: 32 }).notNull(),
+    status: projectWorkflowAssignmentStatusEnum.default("active").notNull(),
+    migrationVersion: int("migrationVersion").default(2).notNull(),
+    assignedByOpenId: varchar("assignedByOpenId", { length: 64 }),
+    assignedAt: timestamp("assignedAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  }
+);
 
 export const blindWorkflowRuntime = mysqlTable("blind_workflow_runtime", {
-  blindTag: varchar("blindTag", { length: 40 }).primaryKey().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  workflowTemplateId: varchar("workflowTemplateId", { length: 96 }).notNull().references(() => workflowTemplates.id),
+  blindTag: varchar("blindTag", { length: 40 })
+    .primaryKey()
+    .references(() => blinds.tag),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
+  workflowTemplateId: varchar("workflowTemplateId", { length: 96 })
+    .notNull()
+    .references(() => workflowTemplates.id),
   workflowVersion: varchar("workflowVersion", { length: 32 }).notNull(),
   currentPhaseKey: workflowPhaseKeyEnum.notNull(),
   lifecycleStatus: workflowLifecycleStatusEnum.default("PLANNED").notNull(),
@@ -560,68 +883,105 @@ export const blindWorkflowRuntime = mysqlTable("blind_workflow_runtime", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export const blindPhaseInstances = mysqlTable("blind_phase_instances", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  workflowTemplateId: varchar("workflowTemplateId", { length: 96 }).notNull().references(() => workflowTemplates.id),
-  phaseKey: workflowPhaseKeyEnum.notNull(),
-  sortOrder: int("sortOrder").notNull(),
-  status: phaseInstanceStatusEnum.default("pending").notNull(),
-  assignedRoleKey: varchar("assignedRoleKey", { length: 80 }).notNull(),
-  startedAt: timestamp("startedAt"),
-  completedAt: timestamp("completedAt"),
-  completedByOpenId: varchar("completedByOpenId", { length: 64 }),
-  approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
-  checklistComplete: int("checklistComplete").default(0).notNull(),
-  evidenceComplete: int("evidenceComplete").default(0).notNull(),
-  gateSnapshotJson: text("gateSnapshotJson"),
-  recordVersion: int("recordVersion").default(1).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  blindPhaseInstanceUnique: uniqueIndex("blind_phase_instance_unique").on(table.blindTag, table.phaseKey),
-}));
+export const blindPhaseInstances = mysqlTable(
+  "blind_phase_instances",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    workflowTemplateId: varchar("workflowTemplateId", { length: 96 })
+      .notNull()
+      .references(() => workflowTemplates.id),
+    phaseKey: workflowPhaseKeyEnum.notNull(),
+    sortOrder: int("sortOrder").notNull(),
+    status: phaseInstanceStatusEnum.default("pending").notNull(),
+    assignedRoleKey: varchar("assignedRoleKey", { length: 80 }).notNull(),
+    startedAt: timestamp("startedAt"),
+    completedAt: timestamp("completedAt"),
+    completedByOpenId: varchar("completedByOpenId", { length: 64 }),
+    approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
+    checklistComplete: int("checklistComplete").default(0).notNull(),
+    evidenceComplete: int("evidenceComplete").default(0).notNull(),
+    gateSnapshotJson: text("gateSnapshotJson"),
+    recordVersion: int("recordVersion").default(1).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    blindPhaseInstanceUnique: uniqueIndex("blind_phase_instance_unique").on(
+      table.blindTag,
+      table.phaseKey
+    ),
+  })
+);
 
-export const blindChecklistResponses = mysqlTable("blind_checklist_responses", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  phaseKey: workflowPhaseKeyEnum.notNull(),
-  itemKey: varchar("itemKey", { length: 160 }).notNull(),
-  itemLabel: varchar("itemLabel", { length: 500 }).notNull(),
-  required: int("required").default(1).notNull(),
-  completed: int("completed").default(0).notNull(),
-  responseJson: text("responseJson"),
-  completedByOpenId: varchar("completedByOpenId", { length: 64 }),
-  completedAt: timestamp("completedAt"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  blindChecklistUnique: uniqueIndex("blind_checklist_unique").on(table.blindTag, table.phaseKey, table.itemKey),
-}));
+export const blindChecklistResponses = mysqlTable(
+  "blind_checklist_responses",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    phaseKey: workflowPhaseKeyEnum.notNull(),
+    itemKey: varchar("itemKey", { length: 160 }).notNull(),
+    itemLabel: varchar("itemLabel", { length: 500 }).notNull(),
+    required: int("required").default(1).notNull(),
+    completed: int("completed").default(0).notNull(),
+    responseJson: text("responseJson"),
+    completedByOpenId: varchar("completedByOpenId", { length: 64 }),
+    completedAt: timestamp("completedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    blindChecklistUnique: uniqueIndex("blind_checklist_unique").on(
+      table.blindTag,
+      table.phaseKey,
+      table.itemKey
+    ),
+  })
+);
 
-export const workflowTransitionEvents = mysqlTable("workflow_transition_events", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  fromPhaseKey: workflowPhaseKeyEnum,
-  toPhaseKey: workflowPhaseKeyEnum.notNull(),
-  actionKey: varchar("actionKey", { length: 120 }).notNull(),
-  status: transitionEventStatusEnum.notNull(),
-  blockingReasonsJson: text("blockingReasonsJson"),
-  gateSnapshotJson: text("gateSnapshotJson"),
-  reason: text("reason"),
-  actorOpenId: varchar("actorOpenId", { length: 64 }).notNull(),
-  actorName: varchar("actorName", { length: 160 }),
-  recordVersionBefore: int("recordVersionBefore").notNull(),
-  recordVersionAfter: int("recordVersionAfter").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const workflowTransitionEvents = mysqlTable(
+  "workflow_transition_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    // These event fields have distinct physical names in migration 0014. Reusing
+    // workflowPhaseKeyEnum would map both properties to the unrelated `phaseKey`
+    // column and break dashboard/event queries in production.
+    fromPhaseKey: mysqlEnum("fromPhaseKey", workflowPhaseKeyValues),
+    toPhaseKey: mysqlEnum("toPhaseKey", workflowPhaseKeyValues).notNull(),
+    actionKey: varchar("actionKey", { length: 120 }).notNull(),
+    status: transitionEventStatusEnum.notNull(),
+    blockingReasonsJson: text("blockingReasonsJson"),
+    gateSnapshotJson: text("gateSnapshotJson"),
+    reason: text("reason"),
+    actorOpenId: varchar("actorOpenId", { length: 64 }).notNull(),
+    actorName: varchar("actorName", { length: 160 }),
+    recordVersionBefore: int("recordVersionBefore").notNull(),
+    recordVersionAfter: int("recordVersionAfter").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  }
+);
 
 export const isolationPackages = mysqlTable("isolation_packages", {
   id: varchar("id", { length: 64 }).primaryKey(),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
   equipment: varchar("equipment", { length: 160 }).notNull(),
   description: text("description"),
   status: isolationPackageStatusEnum.default("draft").notNull(),
@@ -631,26 +991,41 @@ export const isolationPackages = mysqlTable("isolation_packages", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export const isolationPackageBlinds = mysqlTable("isolation_package_blinds", {
-  id: int("id").autoincrement().primaryKey(),
-  packageId: varchar("packageId", { length: 64 }).notNull().references(() => isolationPackages.id),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  required: int("required").default(1).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, (table) => ({
-  packageBlindUnique: uniqueIndex("isolation_package_blind_unique").on(table.packageId, table.blindTag),
-}));
+export const isolationPackageBlinds = mysqlTable(
+  "isolation_package_blinds",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    packageId: varchar("packageId", { length: 64 })
+      .notNull()
+      .references(() => isolationPackages.id),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    required: int("required").default(1).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    packageBlindUnique: uniqueIndex("isolation_package_blind_unique").on(
+      table.packageId,
+      table.blindTag
+    ),
+  })
+);
 
 export const entryReadinessRecords = mysqlTable("entry_readiness_records", {
   id: int("id").autoincrement().primaryKey(),
-  packageId: varchar("packageId", { length: 64 }).notNull().references(() => isolationPackages.id),
+  packageId: varchar("packageId", { length: 64 })
+    .notNull()
+    .references(() => isolationPackages.id),
   status: entryReadinessStatusEnum.default("draft").notNull(),
   allRequiredBlindsActive: int("allRequiredBlindsActive").default(0).notNull(),
   lotoActive: int("lotoActive").default(0).notNull(),
   pressureZero: int("pressureZero").default(0).notNull(),
   drainedAndPurged: int("drainedAndPurged").default(0).notNull(),
   gasTestAcceptable: int("gasTestAcceptable").default(0).notNull(),
-  confinedSpacePermitValid: int("confinedSpacePermitValid").default(0).notNull(),
+  confinedSpacePermitValid: int("confinedSpacePermitValid")
+    .default(0)
+    .notNull(),
   operationsApproved: int("operationsApproved").default(0).notNull(),
   entrySupervisorApproved: int("entrySupervisorApproved").default(0).notNull(),
   validUntil: timestamp("validUntil"),
@@ -662,8 +1037,12 @@ export const entryReadinessRecords = mysqlTable("entry_readiness_records", {
 
 export const permitRecords = mysqlTable("permit_records", {
   id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
+  blindTag: varchar("blindTag", { length: 40 })
+    .notNull()
+    .references(() => blinds.tag),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
   permitType: varchar("permitType", { length: 60 }).notNull(),
   permitNumber: varchar("permitNumber", { length: 120 }).notNull(),
   status: complianceRecordStatusEnum.default("draft").notNull(),
@@ -677,8 +1056,12 @@ export const permitRecords = mysqlTable("permit_records", {
 
 export const lotoRecords = mysqlTable("loto_records", {
   id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
+  blindTag: varchar("blindTag", { length: 40 })
+    .notNull()
+    .references(() => blinds.tag),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
   certificateNumber: varchar("certificateNumber", { length: 120 }).notNull(),
   status: complianceRecordStatusEnum.default("draft").notNull(),
   lockNumbersJson: text("lockNumbersJson"),
@@ -694,8 +1077,12 @@ export const lotoRecords = mysqlTable("loto_records", {
 
 export const gasTestRecords = mysqlTable("gas_test_records", {
   id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
+  blindTag: varchar("blindTag", { length: 40 })
+    .notNull()
+    .references(() => blinds.tag),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
   testPurpose: varchar("testPurpose", { length: 80 }).notNull(),
   status: complianceRecordStatusEnum.default("draft").notNull(),
   oxygenPercent: decimal("oxygenPercent", { precision: 6, scale: 2 }),
@@ -713,61 +1100,88 @@ export const gasTestRecords = mysqlTable("gas_test_records", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export const torqueRecords = mysqlTable("torque_records", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  stage: torqueRecordStageEnum.notNull(),
-  status: torqueRecordStatusEnum.default("draft").notNull(),
-  procedureReference: varchar("procedureReference", { length: 160 }),
-  toolType: varchar("toolType", { length: 120 }).notNull(),
-  toolSerialNumber: varchar("toolSerialNumber", { length: 120 }),
-  calibrationCertificateNumber: varchar("calibrationCertificateNumber", { length: 120 }),
-  calibrationExpiry: timestamp("calibrationExpiry"),
-  targetTorque: decimal("targetTorque", { precision: 12, scale: 3 }),
-  actualTorque: decimal("actualTorque", { precision: 12, scale: 3 }),
-  torqueUnit: varchar("torqueUnit", { length: 20 }).default("N·m").notNull(),
-  pumpPressure: decimal("pumpPressure", { precision: 12, scale: 3 }),
-  pumpPressureUnit: varchar("pumpPressureUnit", { length: 20 }),
-  passesJson: text("passesJson"),
-  technicianOpenId: varchar("technicianOpenId", { length: 64 }),
-  witnessOpenId: varchar("witnessOpenId", { length: 64 }),
-  acceptedByOpenId: varchar("acceptedByOpenId", { length: 64 }),
-  completedAt: timestamp("completedAt"),
-  acceptedAt: timestamp("acceptedAt"),
-  notes: text("notes"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  blindTorqueStageUnique: uniqueIndex("blind_torque_stage_unique").on(table.blindTag, table.stage),
-}));
+export const torqueRecords = mysqlTable(
+  "torque_records",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    stage: torqueRecordStageEnum.notNull(),
+    status: torqueRecordStatusEnum.default("draft").notNull(),
+    procedureReference: varchar("procedureReference", { length: 160 }),
+    toolType: varchar("toolType", { length: 120 }).notNull(),
+    toolSerialNumber: varchar("toolSerialNumber", { length: 120 }),
+    calibrationCertificateNumber: varchar("calibrationCertificateNumber", {
+      length: 120,
+    }),
+    calibrationExpiry: timestamp("calibrationExpiry"),
+    targetTorque: decimal("targetTorque", { precision: 12, scale: 3 }),
+    actualTorque: decimal("actualTorque", { precision: 12, scale: 3 }),
+    torqueUnit: varchar("torqueUnit", { length: 20 }).default("N·m").notNull(),
+    pumpPressure: decimal("pumpPressure", { precision: 12, scale: 3 }),
+    pumpPressureUnit: varchar("pumpPressureUnit", { length: 20 }),
+    passesJson: text("passesJson"),
+    technicianOpenId: varchar("technicianOpenId", { length: 64 }),
+    witnessOpenId: varchar("witnessOpenId", { length: 64 }),
+    acceptedByOpenId: varchar("acceptedByOpenId", { length: 64 }),
+    completedAt: timestamp("completedAt"),
+    acceptedAt: timestamp("acceptedAt"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    blindTorqueStageUnique: uniqueIndex("blind_torque_stage_unique").on(
+      table.blindTag,
+      table.stage
+    ),
+  })
+);
 
-export const leakTestRecords = mysqlTable("leak_test_records", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  status: leakTestStatusEnum.default("draft").notNull(),
-  testType: varchar("testType", { length: 80 }),
-  testMedium: varchar("testMedium", { length: 80 }),
-  testPressure: decimal("testPressure", { precision: 12, scale: 3 }),
-  pressureUnit: varchar("pressureUnit", { length: 20 }),
-  durationMinutes: int("durationMinutes"),
-  noLeakObserved: int("noLeakObserved").default(0).notNull(),
-  performedByOpenId: varchar("performedByOpenId", { length: 64 }),
-  acceptedByOpenId: varchar("acceptedByOpenId", { length: 64 }),
-  testedAt: timestamp("testedAt"),
-  acceptedAt: timestamp("acceptedAt"),
-  notes: text("notes"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  blindLeakTestUnique: uniqueIndex("blind_leak_test_unique").on(table.blindTag),
-}));
+export const leakTestRecords = mysqlTable(
+  "leak_test_records",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    status: leakTestStatusEnum.default("draft").notNull(),
+    testType: varchar("testType", { length: 80 }),
+    testMedium: varchar("testMedium", { length: 80 }),
+    testPressure: decimal("testPressure", { precision: 12, scale: 3 }),
+    pressureUnit: varchar("pressureUnit", { length: 20 }),
+    durationMinutes: int("durationMinutes"),
+    noLeakObserved: int("noLeakObserved").default(0).notNull(),
+    performedByOpenId: varchar("performedByOpenId", { length: 64 }),
+    acceptedByOpenId: varchar("acceptedByOpenId", { length: 64 }),
+    testedAt: timestamp("testedAt"),
+    acceptedAt: timestamp("acceptedAt"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    blindLeakTestUnique: uniqueIndex("blind_leak_test_unique").on(
+      table.blindTag
+    ),
+  })
+);
 
 export const safetyHolds = mysqlTable("safety_holds", {
   id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
+  blindTag: varchar("blindTag", { length: 40 })
+    .notNull()
+    .references(() => blinds.tag),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
   phaseKey: workflowPhaseKeyEnum.notNull(),
   status: safetyHoldStatusEnum.default("active").notNull(),
   reasonCode: varchar("reasonCode", { length: 80 }).notNull(),
@@ -784,109 +1198,164 @@ export const safetyHolds = mysqlTable("safety_holds", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export const workflowApprovalSteps = mysqlTable("workflow_approval_steps", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  phaseKey: workflowPhaseKeyEnum.notNull(),
-  approvalRoleKey: varchar("approvalRoleKey", { length: 80 }).notNull(),
-  sequence: int("sequence").notNull(),
-  conditional: int("conditional").default(0).notNull(),
-  status: approvalStepStatusEnum.default("pending").notNull(),
-  approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
-  approvedByName: varchar("approvedByName", { length: 160 }),
-  note: text("note"),
-  approvedAt: timestamp("approvedAt"),
-  revokedAt: timestamp("revokedAt"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  workflowApprovalUnique: uniqueIndex("workflow_approval_unique").on(table.blindTag, table.phaseKey, table.approvalRoleKey),
-}));
+export const workflowApprovalSteps = mysqlTable(
+  "workflow_approval_steps",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    phaseKey: workflowPhaseKeyEnum.notNull(),
+    approvalRoleKey: varchar("approvalRoleKey", { length: 80 }).notNull(),
+    sequence: int("sequence").notNull(),
+    conditional: int("conditional").default(0).notNull(),
+    status: approvalStepStatusEnum.default("pending").notNull(),
+    approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
+    approvedByName: varchar("approvedByName", { length: 160 }),
+    note: text("note"),
+    approvedAt: timestamp("approvedAt"),
+    revokedAt: timestamp("revokedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    workflowApprovalUnique: uniqueIndex("workflow_approval_unique").on(
+      table.blindTag,
+      table.phaseKey,
+      table.approvalRoleKey
+    ),
+  })
+);
 
-export const workflowEvidenceAttachments = mysqlTable("workflow_evidence_attachments", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  phaseKey: workflowPhaseKeyEnum.notNull(),
-  category: varchar("category", { length: 120 }).notNull(),
-  fileName: varchar("fileName", { length: 255 }).notNull(),
-  fileUrl: text("fileUrl").notNull(),
-  storageKey: varchar("storageKey", { length: 500 }),
-  mimeType: varchar("mimeType", { length: 120 }),
-  fileSizeBytes: int("fileSizeBytes"),
-  uploadedByOpenId: varchar("uploadedByOpenId", { length: 64 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const workflowEvidenceAttachments = mysqlTable(
+  "workflow_evidence_attachments",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    phaseKey: workflowPhaseKeyEnum.notNull(),
+    category: varchar("category", { length: 120 }).notNull(),
+    fileName: varchar("fileName", { length: 255 }).notNull(),
+    fileUrl: text("fileUrl").notNull(),
+    storageKey: varchar("storageKey", { length: 500 }),
+    mimeType: varchar("mimeType", { length: 120 }),
+    fileSizeBytes: int("fileSizeBytes"),
+    uploadedByOpenId: varchar("uploadedByOpenId", { length: 64 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  }
+);
 
-export const inspectionActivityTemplates = mysqlTable("inspection_activity_templates", {
-  id: int("id").autoincrement().primaryKey(),
-  activityKey: varchar("activityKey", { length: 100 }).notNull(),
-  name: varchar("name", { length: 180 }).notNull(),
-  description: text("description"),
-  applicableEquipmentTypesJson: text("applicableEquipmentTypesJson"),
-  mandatory: int("mandatory").default(0).notNull(),
-  evidenceRequired: int("evidenceRequired").default(0).notNull(),
-  approvalRequired: int("approvalRequired").default(0).notNull(),
-  active: int("active").default(1).notNull(),
-  sortOrder: int("sortOrder").default(0).notNull(),
-  createdByOpenId: varchar("createdByOpenId", { length: 64 }),
-  updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  activityKeyUnique: uniqueIndex("inspection_activity_key_unique").on(table.activityKey),
-}));
+export const inspectionActivityTemplates = mysqlTable(
+  "inspection_activity_templates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    activityKey: varchar("activityKey", { length: 100 }).notNull(),
+    name: varchar("name", { length: 180 }).notNull(),
+    description: text("description"),
+    applicableEquipmentTypesJson: text("applicableEquipmentTypesJson"),
+    mandatory: int("mandatory").default(0).notNull(),
+    evidenceRequired: int("evidenceRequired").default(0).notNull(),
+    approvalRequired: int("approvalRequired").default(0).notNull(),
+    active: int("active").default(1).notNull(),
+    sortOrder: int("sortOrder").default(0).notNull(),
+    createdByOpenId: varchar("createdByOpenId", { length: 64 }),
+    updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    activityKeyUnique: uniqueIndex("inspection_activity_key_unique").on(
+      table.activityKey
+    ),
+  })
+);
 
-export const inspectionActivityRecords = mysqlTable("inspection_activity_records", {
-  id: int("id").autoincrement().primaryKey(),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  templateId: int("templateId").notNull().references(() => inspectionActivityTemplates.id),
-  phaseKey: workflowPhaseKeyEnum.default("internalInspection").notNull(),
-  status: varchar("status", { length: 30 }).default("not_started").notNull(),
-  result: varchar("result", { length: 60 }),
-  notes: text("notes"),
-  completedByOpenId: varchar("completedByOpenId", { length: 64 }),
-  approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
-  completedAt: timestamp("completedAt"),
-  approvedAt: timestamp("approvedAt"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  blindInspectionActivityUnique: uniqueIndex("blind_inspection_activity_unique").on(table.blindTag, table.templateId),
-}));
+export const inspectionActivityRecords = mysqlTable(
+  "inspection_activity_records",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    templateId: int("templateId")
+      .notNull()
+      .references(() => inspectionActivityTemplates.id),
+    phaseKey: workflowPhaseKeyEnum.default("internalInspection").notNull(),
+    status: varchar("status", { length: 30 }).default("not_started").notNull(),
+    result: varchar("result", { length: 60 }),
+    notes: text("notes"),
+    completedByOpenId: varchar("completedByOpenId", { length: 64 }),
+    approvedByOpenId: varchar("approvedByOpenId", { length: 64 }),
+    completedAt: timestamp("completedAt"),
+    approvedAt: timestamp("approvedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    blindInspectionActivityUnique: uniqueIndex(
+      "blind_inspection_activity_unique"
+    ).on(table.blindTag, table.templateId),
+  })
+);
 
-export const certificateRecords = mysqlTable("certificate_records", {
-  id: int("id").autoincrement().primaryKey(),
-  certificateNumber: varchar("certificateNumber", { length: 120 }).notNull().unique(),
-  verificationToken: varchar("verificationToken", { length: 96 }).notNull().unique(),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
-  version: int("version").default(1).notNull(),
-  status: certificateRecordStatusEnum.default("issued").notNull(),
-  snapshotJson: text("snapshotJson").notNull(),
-  snapshotHash: varchar("snapshotHash", { length: 64 }).notNull(),
-  previousCertificateId: int("previousCertificateId"),
-  issuanceReason: text("issuanceReason"),
-  issuedByOpenId: varchar("issuedByOpenId", { length: 64 }).notNull(),
-  issuedByName: varchar("issuedByName", { length: 160 }),
-  issuedAt: timestamp("issuedAt").defaultNow().notNull(),
-  supersededAt: timestamp("supersededAt"),
-  revokedByOpenId: varchar("revokedByOpenId", { length: 64 }),
-  revokedAt: timestamp("revokedAt"),
-  revocationReason: text("revocationReason"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, (table) => ({
-  blindCertificateVersionUnique: uniqueIndex("blind_certificate_version_unique").on(table.blindTag, table.version),
-}));
+export const certificateRecords = mysqlTable(
+  "certificate_records",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    certificateNumber: varchar("certificateNumber", { length: 120 })
+      .notNull()
+      .unique(),
+    verificationToken: varchar("verificationToken", { length: 96 })
+      .notNull()
+      .unique(),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    version: int("version").default(1).notNull(),
+    status: certificateRecordStatusEnum.default("issued").notNull(),
+    snapshotJson: text("snapshotJson").notNull(),
+    snapshotHash: varchar("snapshotHash", { length: 64 }).notNull(),
+    previousCertificateId: int("previousCertificateId"),
+    issuanceReason: text("issuanceReason"),
+    issuedByOpenId: varchar("issuedByOpenId", { length: 64 }).notNull(),
+    issuedByName: varchar("issuedByName", { length: 160 }),
+    issuedAt: timestamp("issuedAt").defaultNow().notNull(),
+    supersededAt: timestamp("supersededAt"),
+    revokedByOpenId: varchar("revokedByOpenId", { length: 64 }),
+    revokedAt: timestamp("revokedAt"),
+    revocationReason: text("revocationReason"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    blindCertificateVersionUnique: uniqueIndex(
+      "blind_certificate_version_unique"
+    ).on(table.blindTag, table.version),
+  })
+);
 
 export const defectNotifications = mysqlTable("defect_notifications", {
   id: int("id").autoincrement().primaryKey(),
   defectNumber: varchar("defectNumber", { length: 120 }).notNull().unique(),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
+  blindTag: varchar("blindTag", { length: 40 })
+    .notNull()
+    .references(() => blinds.tag),
   phaseKey: workflowPhaseKeyEnum.default("internalInspection").notNull(),
   title: varchar("title", { length: 240 }).notNull(),
   description: text("description").notNull(),
@@ -909,8 +1378,12 @@ export const defectNotifications = mysqlTable("defect_notifications", {
 export const punchItems = mysqlTable("punch_items", {
   id: int("id").autoincrement().primaryKey(),
   punchNumber: varchar("punchNumber", { length: 120 }).notNull().unique(),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
+  blindTag: varchar("blindTag", { length: 40 })
+    .notNull()
+    .references(() => blinds.tag),
   defectId: int("defectId").references(() => defectNotifications.id),
   title: varchar("title", { length: 240 }).notNull(),
   description: text("description"),
@@ -933,8 +1406,12 @@ export const punchItems = mysqlTable("punch_items", {
 export const ndtRecords = mysqlTable("ndt_records", {
   id: int("id").autoincrement().primaryKey(),
   ndtNumber: varchar("ndtNumber", { length: 120 }).notNull().unique(),
-  projectId: varchar("projectId", { length: 40 }).notNull().references(() => projects.id),
-  blindTag: varchar("blindTag", { length: 40 }).notNull().references(() => blinds.tag),
+  projectId: varchar("projectId", { length: 40 })
+    .notNull()
+    .references(() => projects.id),
+  blindTag: varchar("blindTag", { length: 40 })
+    .notNull()
+    .references(() => blinds.tag),
   defectId: int("defectId").references(() => defectNotifications.id),
   method: varchar("method", { length: 80 }).notNull(),
   procedureReference: varchar("procedureReference", { length: 160 }),
@@ -951,11 +1428,14 @@ export const ndtRecords = mysqlTable("ndt_records", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type ProjectWorkflowAssignmentRow = typeof projectWorkflowAssignments.$inferSelect;
+export type ProjectWorkflowAssignmentRow =
+  typeof projectWorkflowAssignments.$inferSelect;
 export type BlindWorkflowRuntimeRow = typeof blindWorkflowRuntime.$inferSelect;
 export type BlindPhaseInstanceRow = typeof blindPhaseInstances.$inferSelect;
-export type BlindChecklistResponseRow = typeof blindChecklistResponses.$inferSelect;
-export type WorkflowTransitionEventRow = typeof workflowTransitionEvents.$inferSelect;
+export type BlindChecklistResponseRow =
+  typeof blindChecklistResponses.$inferSelect;
+export type WorkflowTransitionEventRow =
+  typeof workflowTransitionEvents.$inferSelect;
 export type IsolationPackageRow = typeof isolationPackages.$inferSelect;
 export type EntryReadinessRecordRow = typeof entryReadinessRecords.$inferSelect;
 export type PermitRecordRow = typeof permitRecords.$inferSelect;
@@ -965,8 +1445,10 @@ export type TorqueRecordRow = typeof torqueRecords.$inferSelect;
 export type LeakTestRecordRow = typeof leakTestRecords.$inferSelect;
 export type SafetyHoldRow = typeof safetyHolds.$inferSelect;
 export type WorkflowApprovalStepRow = typeof workflowApprovalSteps.$inferSelect;
-export type InspectionActivityTemplateRow = typeof inspectionActivityTemplates.$inferSelect;
-export type InspectionActivityRecordRow = typeof inspectionActivityRecords.$inferSelect;
+export type InspectionActivityTemplateRow =
+  typeof inspectionActivityTemplates.$inferSelect;
+export type InspectionActivityRecordRow =
+  typeof inspectionActivityRecords.$inferSelect;
 export type CertificateRecordRow = typeof certificateRecords.$inferSelect;
 export type DefectNotificationRow = typeof defectNotifications.$inferSelect;
 export type PunchItemRow = typeof punchItems.$inferSelect;
@@ -980,7 +1462,9 @@ export const defaultTagSettings = mysqlTable("default_tag_settings", {
   tagPaddingDigits: int("tagPaddingDigits").default(3).notNull(),
   tagStartNumber: int("tagStartNumber").default(1).notNull(),
   // Default Blind Values
-  defaultType: varchar("defaultType", { length: 120 }).default("Spectacle Blind").notNull(),
+  defaultType: varchar("defaultType", { length: 120 })
+    .default("Spectacle Blind")
+    .notNull(),
   defaultSize: varchar("defaultSize", { length: 60 }).default('2"').notNull(),
   defaultRate: varchar("defaultRate", { length: 60 }).default("150#").notNull(),
   defaultPriority: blindPriorityEnum.default("Normal").notNull(),
@@ -1000,7 +1484,9 @@ export const defaultTagSettings = mysqlTable("default_tag_settings", {
   tagShowLogo: int("tagShowLogo").default(1),
   tagShowQR: int("tagShowQR").default(1),
   tagHoleEnabled: int("tagHoleEnabled").default(1),
-  tagHolePosition: varchar("tagHolePosition", { length: 20 }).default("top-center"),
+  tagHolePosition: varchar("tagHolePosition", { length: 20 }).default(
+    "top-center"
+  ),
   updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1013,18 +1499,30 @@ export const defaultTagSettings = mysqlTable("default_tag_settings", {
 export const certificateSettings = mysqlTable("certificate_settings", {
   id: int("id").autoincrement().primaryKey(),
   // Header
-  certificateTitle: varchar("certificateTitle", { length: 200 }).default("Blind Installation Certificate").notNull(),
-  headerCompanyName: varchar("headerCompanyName", { length: 200 }).default("Shedgum Gas Plant").notNull(),
-  headerSubtitle: varchar("headerSubtitle", { length: 300 }).default("Smart Blind Tracking System - SBTS").notNull(),
+  certificateTitle: varchar("certificateTitle", { length: 200 })
+    .default("Blind Installation Certificate")
+    .notNull(),
+  headerCompanyName: varchar("headerCompanyName", { length: 200 })
+    .default("Shedgum Gas Plant")
+    .notNull(),
+  headerSubtitle: varchar("headerSubtitle", { length: 300 })
+    .default("Smart Blind Tracking System - SBTS")
+    .notNull(),
   logoUrl: text("logoUrl"),
   // Signature Fields
-  signature1Label: varchar("signature1Label", { length: 100 }).default("Prepared By").notNull(),
+  signature1Label: varchar("signature1Label", { length: 100 })
+    .default("Prepared By")
+    .notNull(),
   signature1Name: varchar("signature1Name", { length: 160 }),
   signature1Title: varchar("signature1Title", { length: 160 }),
-  signature2Label: varchar("signature2Label", { length: 100 }).default("Reviewed By").notNull(),
+  signature2Label: varchar("signature2Label", { length: 100 })
+    .default("Reviewed By")
+    .notNull(),
   signature2Name: varchar("signature2Name", { length: 160 }),
   signature2Title: varchar("signature2Title", { length: 160 }),
-  signature3Label: varchar("signature3Label", { length: 100 }).default("Approved By").notNull(),
+  signature3Label: varchar("signature3Label", { length: 100 })
+    .default("Approved By")
+    .notNull(),
   signature3Name: varchar("signature3Name", { length: 160 }),
   signature3Title: varchar("signature3Title", { length: 160 }),
   // Footer
@@ -1034,7 +1532,9 @@ export const certificateSettings = mysqlTable("certificate_settings", {
   showSystemVersion: int("showSystemVersion").default(1).notNull(),
   // Print Options
   paperSize: varchar("paperSize", { length: 20 }).default("A4").notNull(),
-  orientation: varchar("orientation", { length: 20 }).default("portrait").notNull(),
+  orientation: varchar("orientation", { length: 20 })
+    .default("portrait")
+    .notNull(),
   // Section Visibility
   showWorkflowLog: int("showWorkflowLog").default(1),
   showExecutionTorque: int("showExecutionTorque").default(1),
@@ -1044,8 +1544,12 @@ export const certificateSettings = mysqlTable("certificate_settings", {
   showQrCode: int("showQrCode").default(1),
   showLockStatus: int("showLockStatus").default(1),
   showAreaInfo: int("showAreaInfo").default(1),
-  statusBadgeText: varchar("statusBadgeText", { length: 40 }).default("APPROVED"),
-  lockBadgeText: varchar("lockBadgeText", { length: 40 }).default("LOCKED / FINAL"),
+  statusBadgeText: varchar("statusBadgeText", { length: 40 }).default(
+    "APPROVED"
+  ),
+  lockBadgeText: varchar("lockBadgeText", { length: 40 }).default(
+    "LOCKED / FINAL"
+  ),
   updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1067,7 +1571,9 @@ export const securitySettings = mysqlTable("security_settings", {
   qrRequireAuth: int("qrRequireAuth").default(0).notNull(),
   allowDeleteBlinds: int("allowDeleteBlinds").default(0).notNull(),
   allowDeleteProjects: int("allowDeleteProjects").default(0).notNull(),
-  requireDeleteConfirmation: int("requireDeleteConfirmation").default(1).notNull(),
+  requireDeleteConfirmation: int("requireDeleteConfirmation")
+    .default(1)
+    .notNull(),
   auditTrailEnabled: int("auditTrailEnabled").default(1).notNull(),
   auditRetentionDays: int("auditRetentionDays").default(90).notNull(),
   sessionTimeoutMinutes: int("sessionTimeoutMinutes").default(480).notNull(),
@@ -1100,7 +1606,9 @@ export const notificationPreferences = mysqlTable("notification_preferences", {
   workflowUpdated: int("workflowUpdated").default(1).notNull(),
   workflowTransition: int("workflowTransition").default(1).notNull(),
   workflowGateBlocked: int("workflowGateBlocked").default(1).notNull(),
-  workflowApprovalRequired: int("workflowApprovalRequired").default(1).notNull(),
+  workflowApprovalRequired: int("workflowApprovalRequired")
+    .default(1)
+    .notNull(),
   safetyHoldPlaced: int("safetyHoldPlaced").default(1).notNull(),
   safetyHoldReleased: int("safetyHoldReleased").default(1).notNull(),
   systemAnnouncement: int("systemAnnouncement").default(1).notNull(),
@@ -1109,9 +1617,10 @@ export const notificationPreferences = mysqlTable("notification_preferences", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type NotificationPreferencesRow = typeof notificationPreferences.$inferSelect;
-export type InsertNotificationPreferences = typeof notificationPreferences.$inferInsert;
-
+export type NotificationPreferencesRow =
+  typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreferences =
+  typeof notificationPreferences.$inferInsert;
 
 /**
  * User-to-Role assignments. Links users to access_roles for centralized permission management.
@@ -1119,8 +1628,12 @@ export type InsertNotificationPreferences = typeof notificationPreferences.$infe
  */
 export const userRoleAssignments = mysqlTable("user_role_assignments", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().references(() => users.id),
-  roleKey: varchar("roleKey", { length: 80 }).notNull().references(() => accessRoles.key),
+  userId: int("userId")
+    .notNull()
+    .references(() => users.id),
+  roleKey: varchar("roleKey", { length: 80 })
+    .notNull()
+    .references(() => accessRoles.key),
   assignedByOpenId: varchar("assignedByOpenId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -1134,26 +1647,26 @@ export type InsertUserRoleAssignment = typeof userRoleAssignments.$inferInsert;
  */
 export const notificationTypeEnum = mysqlEnum("notificationType", [
   // Registration events
-  "registration_request",      // new user submitted registration → admin
-  "registration_approved",     // admin approved user → user
-  "registration_rejected",     // admin rejected user → user
+  "registration_request", // new user submitted registration → admin
+  "registration_approved", // admin approved user → user
+  "registration_rejected", // admin rejected user → user
   // Blind phase events
-  "blind_phase_changed",       // blind moved to new phase → phase owner
-  "blind_phase_approval",      // electronic approval submitted → project coordinator
-  "blind_assigned",            // blind assigned to user → assignee
+  "blind_phase_changed", // blind moved to new phase → phase owner
+  "blind_phase_approval", // electronic approval submitted → project coordinator
+  "blind_assigned", // blind assigned to user → assignee
   // Project events
-  "project_created",           // new project created → all admins
-  "project_status_changed",    // project status changed → phase owners
-  "phase_owner_assigned",      // user assigned as phase owner → that user
+  "project_created", // new project created → all admins
+  "project_status_changed", // project status changed → phase owners
+  "phase_owner_assigned", // user assigned as phase owner → that user
   // Workflow events
-  "workflow_updated",          // workflow template updated → admins
-  "workflow_transition",       // canonical runtime phase transition
-  "workflow_gate_blocked",     // transition rejected by a server gate
-  "workflow_approval_required",// approval step requires action
-  "safety_hold_placed",        // stop-work / safety hold placed
-  "safety_hold_released",      // safety hold released after approval
+  "workflow_updated", // workflow template updated → admins
+  "workflow_transition", // canonical runtime phase transition
+  "workflow_gate_blocked", // transition rejected by a server gate
+  "workflow_approval_required", // approval step requires action
+  "safety_hold_placed", // stop-work / safety hold placed
+  "safety_hold_released", // safety hold released after approval
   // System events
-  "system_announcement",       // general system announcement → all users
+  "system_announcement", // general system announcement → all users
 ]);
 
 export const notifications = mysqlTable("notifications", {
@@ -1183,7 +1696,6 @@ export const notifications = mysqlTable("notifications", {
 export type NotificationRow = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
 
-
 /**
  * Feature Toggles — التحكم بالخصائص من الإعدادات
  * كل خاصية يمكن تفعيلها أو تعطيلها من صفحة الإعدادات
@@ -1208,7 +1720,9 @@ export const featureToggles = mysqlTable("feature_toggles", {
   enableFieldNotes: int("enableFieldNotes").default(1).notNull(),
   // QR & Mobile Features
   enableQrGeneration: int("enableQrGeneration").default(1).notNull(),
-  enableMobileVerification: int("enableMobileVerification").default(1).notNull(),
+  enableMobileVerification: int("enableMobileVerification")
+    .default(1)
+    .notNull(),
   enableOfflineAccess: int("enableOfflineAccess").default(0).notNull(),
   // General Features
   enableSlipBlindSurveys: int("enableSlipBlindSurveys").default(1).notNull(),

@@ -4,35 +4,114 @@ import { getDatabaseUrl } from "../server/_core/databaseUrl";
 
 const requiredColumns: Record<string, string[]> = {
   areas: [
-    "id", "name", "code", "description", "location", "isActive",
-    "createdAt", "updatedAt",
+    "id",
+    "name",
+    "code",
+    "description",
+    "location",
+    "isActive",
+    "createdAt",
+    "updatedAt",
   ],
   projects: [
-    "id", "name", "areaId", "projectStatus", "blindsCount", "progress",
-    "description", "createdAt", "updatedAt",
+    "id",
+    "name",
+    "areaId",
+    "projectStatus",
+    "blindsCount",
+    "progress",
+    "description",
+    "createdAt",
+    "updatedAt",
   ],
   blinds: [
-    "tag", "projectId", "type", "size", "rate", "blindPhase", "owner",
-    "blindPriority", "lineNumber", "location", "isolationPoint",
-    "slipMetalForemanApproved", "slipBlindMerged", "notes", "material",
-    "flangeType", "gasketType", "boltSize", "torqueValue", "thickness",
-    "tempRating", "pidRef", "isoDrawing", "lineNumber2", "installDate",
-    "expiryDate", "createdAt", "updatedAt",
+    "tag",
+    "projectId",
+    "type",
+    "size",
+    "rate",
+    "blindPhase",
+    "owner",
+    "blindPriority",
+    "lineNumber",
+    "location",
+    "isolationPoint",
+    "slipMetalForemanApproved",
+    "slipBlindMerged",
+    "notes",
+    "material",
+    "flangeType",
+    "gasketType",
+    "boltSize",
+    "torqueValue",
+    "thickness",
+    "tempRating",
+    "pidRef",
+    "isoDrawing",
+    "lineNumber2",
+    "installDate",
+    "expiryDate",
+    "createdAt",
+    "updatedAt",
   ],
   users: [
-    "id", "openId", "name", "email", "loginMethod", "role", "userStatus",
-    "passwordHash", "failedLoginAttempts", "lockedUntil", "preferredTheme", "createdAt", "updatedAt",
+    "id",
+    "openId",
+    "name",
+    "email",
+    "loginMethod",
+    "role",
+    "userStatus",
+    "passwordHash",
+    "failedLoginAttempts",
+    "lockedUntil",
+    "preferredTheme",
+    "createdAt",
+    "updatedAt",
   ],
   feature_toggles: [
     "id",
-    "enableWorkflowTab", "enableComplianceTab", "enableFieldActionsTab",
-    "enableQrMobileTab", "enableHistoryTab",
-    "enableSafetyChecklists", "enableTorqueRecords", "enableInspectionRecords",
-    "enablePhotoEvidence", "enablePtw", "enableLoto", "enableRiskAssessment",
-    "enableFieldNotes", "enableQrGeneration", "enableMobileVerification",
-    "enableOfflineAccess", "enableSlipBlindSurveys", "enableCertificates",
-    "enableExpiryTracking", "enableProgressRing", "enableQuickActions",
-    "enableBreadcrumb", "updatedByOpenId", "updatedAt",
+    "enableWorkflowTab",
+    "enableComplianceTab",
+    "enableFieldActionsTab",
+    "enableQrMobileTab",
+    "enableHistoryTab",
+    "enableSafetyChecklists",
+    "enableTorqueRecords",
+    "enableInspectionRecords",
+    "enablePhotoEvidence",
+    "enablePtw",
+    "enableLoto",
+    "enableRiskAssessment",
+    "enableFieldNotes",
+    "enableQrGeneration",
+    "enableMobileVerification",
+    "enableOfflineAccess",
+    "enableSlipBlindSurveys",
+    "enableCertificates",
+    "enableExpiryTracking",
+    "enableProgressRing",
+    "enableQuickActions",
+    "enableBreadcrumb",
+    "updatedByOpenId",
+    "updatedAt",
+  ],
+  workflow_transition_events: [
+    "id",
+    "blindTag",
+    "projectId",
+    "fromPhaseKey",
+    "toPhaseKey",
+    "actionKey",
+    "transitionEventStatus",
+    "blockingReasonsJson",
+    "gateSnapshotJson",
+    "reason",
+    "actorOpenId",
+    "actorName",
+    "recordVersionBefore",
+    "recordVersionAfter",
+    "createdAt",
   ],
 };
 
@@ -46,7 +125,7 @@ async function main() {
     const [columnRows] = await connection.query<mysql.RowDataPacket[]>(
       `SELECT table_name AS tableName, column_name AS columnName
          FROM information_schema.columns
-        WHERE table_schema = DATABASE()`,
+        WHERE table_schema = DATABASE()`
     );
     const columnsByTable = new Map<string, Set<string>>();
     for (const row of columnRows) {
@@ -58,14 +137,17 @@ async function main() {
     }
 
     const failures: string[] = [];
-    for (const [tableName, expectedColumns] of Object.entries(requiredColumns)) {
+    for (const [tableName, expectedColumns] of Object.entries(
+      requiredColumns
+    )) {
       const actual = columnsByTable.get(tableName);
       if (!actual) {
         failures.push(`Missing table: ${tableName}`);
         continue;
       }
-      const missing = expectedColumns.filter((column) => !actual.has(column));
-      if (missing.length) failures.push(`${tableName} missing columns: ${missing.join(", ")}`);
+      const missing = expectedColumns.filter(column => !actual.has(column));
+      if (missing.length)
+        failures.push(`${tableName} missing columns: ${missing.join(", ")}`);
     }
 
     const requiredMigrations = [
@@ -76,10 +158,10 @@ async function main() {
       `SELECT migrationName
          FROM sbts_domain_migrations
         WHERE migrationName IN (?, ?)`,
-      requiredMigrations,
+      requiredMigrations
     );
     const appliedMigrations = new Set(
-      migrationRows.map((row) => String(row.migrationName)),
+      migrationRows.map(row => String(row.migrationName))
     );
     for (const migration of requiredMigrations) {
       if (!appliedMigrations.has(migration)) {
@@ -92,9 +174,9 @@ async function main() {
          FROM information_schema.statistics
         WHERE table_schema = DATABASE()
           AND table_name = 'users'
-          AND column_name = 'email'`,
+          AND column_name = 'email'`
     );
-    if (!emailIndexRows.some((row) => Number(row.nonUnique) === 0)) {
+    if (!emailIndexRows.some(row => Number(row.nonUnique) === 0)) {
       failures.push("users.email does not have a unique index.");
     }
 
@@ -111,18 +193,18 @@ async function main() {
           migrations: requiredMigrations,
         },
         null,
-        2,
-      ),
+        2
+      )
     );
   } finally {
     await connection.end();
   }
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error(
     "SBTS_SCHEMA_CONTRACT_FAILED:",
-    error instanceof Error ? error.message : error,
+    error instanceof Error ? error.message : error
   );
   process.exit(1);
 });

@@ -1,5 +1,14 @@
 # CHANGELOG — SBTS Professional Edition
 
+## 2.2.2 — Sprint 5 Recovery RC7
+
+- Fixed the Drizzle mapping for `workflow_transition_events` so dashboard and
+  workflow-event queries use the physical `fromPhaseKey` and `toPhaseKey`
+  columns instead of the nonexistent `phaseKey` column.
+- Extended the hosted schema contract to validate both transition phase
+  columns before application startup.
+- Added generated-SQL regression coverage for the dashboard/event mapping.
+
 ## 2.2.2 — Sprint 5 Recovery RC6
 
 - Fixed production startup resolving Vite's source-root `package.json` as

@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { drizzle } from "drizzle-orm/mysql2";
 import { describe, expect, it } from "vitest";
+import { workflowTransitionEvents } from "../drizzle/schema";
 
 const root = process.cwd();
 const read = (relativePath: string) =>
@@ -74,6 +76,25 @@ describe("SBTS 2.2 foundational contracts", () => {
     expect(initialProjectMigration).toContain("`projectStatus`");
     expect(projectsContract).toContain('"projectStatus"');
     expect(projectsContract).not.toContain('"status"');
+  });
+
+  it("maps workflow transition phases to their physical MySQL columns", () => {
+    const db = drizzle.mock();
+    const generatedSql = db
+      .select({
+        fromPhaseKey: workflowTransitionEvents.fromPhaseKey,
+        toPhaseKey: workflowTransitionEvents.toPhaseKey,
+      })
+      .from(workflowTransitionEvents)
+      .toSQL().sql;
+    const schemaContract = read("scripts/verify-schema-contract.ts");
+
+    expect(generatedSql).toContain("`fromPhaseKey`");
+    expect(generatedSql).toContain("`toPhaseKey`");
+    expect(generatedSql).not.toContain("`phaseKey`");
+    expect(schemaContract).toContain("workflow_transition_events");
+    expect(schemaContract).toContain('"fromPhaseKey"');
+    expect(schemaContract).toContain('"toPhaseKey"');
   });
 
   it("closes the shared database pool after standalone pre-deploy tasks", () => {
