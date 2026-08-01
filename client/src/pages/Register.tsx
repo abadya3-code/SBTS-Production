@@ -17,35 +17,46 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Shield, User, Briefcase, Hash, FileText, Loader2, CheckCircle,
-  Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight,
+  Shield,
+  User,
+  Briefcase,
+  Hash,
+  FileText,
+  Loader2,
+  CheckCircle,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
 
 const DEPARTMENTS = [
-  "الصيانة والتشغيل",
-  "الهندسة الميكانيكية",
-  "الهندسة الكيميائية",
-  "الهندسة الكهربائية",
-  "ضمان الجودة والتفتيش",
-  "السلامة والصحة المهنية",
-  "التخطيط والجدولة",
-  "المشتريات والعقود",
-  "تقنية المعلومات",
-  "الإدارة والموارد البشرية",
-  "أخرى",
+  "Maintenance & Operations",
+  "Mechanical Engineering",
+  "Chemical Engineering",
+  "Electrical Engineering",
+  "Quality Assurance & Inspection",
+  "Occupational Health & Safety",
+  "Planning & Scheduling",
+  "Procurement & Contracts",
+  "Information Technology",
+  "Administration & Human Resources",
+  "Other",
 ];
 
 const SPECIALTIES = [
-  "مهندس T&I (Turnaround & Inspection)",
-  "رئيس عمال معادن (Metal Foreman)",
-  "فني تركيب (Technician)",
-  "مفتش جودة (QC Inspector)",
-  "مسؤول سلامة (Safety Officer)",
-  "منسق مشاريع (Project Coordinator)",
-  "مهندس أول (Senior Engineer)",
-  "مشرف عمليات (Operations Supervisor)",
-  "مدير مشروع (Project Manager)",
-  "أخرى",
+  "Turnaround & Inspection Engineer",
+  "Metal Foreman",
+  "Installation Technician",
+  "QC Inspector",
+  "Safety Officer",
+  "Project Coordinator",
+  "Senior Engineer",
+  "Operations Supervisor",
+  "Project Manager",
+  "Other",
 ];
 
 export default function Register() {
@@ -71,7 +82,7 @@ export default function Register() {
     onSuccess: () => {
       setSubmitted(true);
     },
-    onError: (err) => {
+    onError: err => {
       setErrorMsg(err.message);
     },
   });
@@ -79,21 +90,22 @@ export default function Register() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!form.name.trim() || form.name.trim().length < 2) {
-      newErrors.name = "الاسم يجب أن يكون حرفين على الأقل";
+      newErrors.name = "Name must contain at least two characters";
     }
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = "يرجى إدخال بريد إلكتروني صحيح";
+      newErrors.email = "Enter a valid email address";
     }
     if (!form.password || form.password.length < 8) {
-      newErrors.password = "كلمة المرور يجب أن تكون 8 أحرف على الأقل";
+      newErrors.password = "Password must contain at least eight characters";
     }
     if (form.password !== form.confirmPassword) {
-      newErrors.confirmPassword = "كلمات المرور غير متطابقة";
+      newErrors.confirmPassword = "Passwords do not match";
     }
-    if (!form.department) newErrors.department = "يرجى اختيار القسم";
-    if (!form.specialty) newErrors.specialty = "يرجى اختيار التخصص";
+    if (!form.department) newErrors.department = "Select a department";
+    if (!form.specialty) newErrors.specialty = "Select a specialty";
     if (!form.employeeNumber.trim() || form.employeeNumber.trim().length < 3) {
-      newErrors.employeeNumber = "رقم الموظف يجب أن يكون 3 أحرف على الأقل";
+      newErrors.employeeNumber =
+        "Employee number must contain at least three characters";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -116,22 +128,27 @@ export default function Register() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6" dir="rtl">
+      <div
+        className="min-h-screen bg-slate-950 flex items-center justify-center p-6"
+        dir="ltr"
+      >
         <div className="text-center max-w-md">
           <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="h-10 w-10 text-emerald-400" />
           </div>
-          <h2 className="text-2xl font-black text-white mb-3">تم إرسال طلب التسجيل!</h2>
+          <h2 className="text-2xl font-black text-white mb-3">
+            Registration request submitted
+          </h2>
           <p className="text-slate-400 text-sm leading-relaxed mb-6">
-            تم استلام طلبك بنجاح. سيقوم مسؤول النظام بمراجعة طلبك والموافقة عليه في أقرب وقت.
-            ستتمكن من تسجيل الدخول بعد الموافقة على حسابك.
+            Your request has been received and is awaiting System Administrator
+            review. You can sign in after your account is approved.
           </p>
           <Button
             onClick={() => setLocation("/login")}
             className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-8"
           >
-            <ArrowRight className="h-4 w-4 ml-2" />
-            العودة لتسجيل الدخول
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to sign in
           </Button>
         </div>
       </div>
@@ -139,7 +156,7 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex overflow-hidden" dir="rtl">
+    <div className="min-h-screen bg-slate-950 flex overflow-hidden" dir="ltr">
       {/* Background grid */}
       <div
         className="fixed inset-0 opacity-[0.03] pointer-events-none"
@@ -162,46 +179,61 @@ export default function Register() {
               <Shield className="h-5 w-5 text-cyan-400" />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400">SBTS</div>
-              <div className="text-xs text-slate-500">Smart Blind Tracking System</div>
+              <div className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400">
+                SBTS
+              </div>
+              <div className="text-xs text-slate-500">
+                Smart Blind Tracking System
+              </div>
             </div>
           </div>
 
           <h1 className="text-3xl font-black text-white leading-tight mb-4">
-            طلب حساب
+            Request
             <br />
-            <span className="text-cyan-400">جديد</span>
+            <span className="text-cyan-400">an account</span>
           </h1>
           <p className="text-slate-400 text-sm leading-relaxed">
-            أنشئ حسابك وأرسل طلب التسجيل. سيراجع مسؤول النظام طلبك ويمنحك الصلاحيات المناسبة.
+            Create an account request for System Administrator review and role
+            assignment.
           </p>
         </div>
 
         {/* Steps */}
         <div className="relative z-10 space-y-4">
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">خطوات التسجيل</div>
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">
+            Registration process
+          </div>
           {[
-            { num: "01", label: "إنشاء الحساب وإرسال الطلب", active: true },
-            { num: "02", label: "مراجعة الطلب من المسؤول", done: false },
-            { num: "03", label: "تسجيل الدخول والوصول الكامل", done: false },
+            { num: "01", label: "Create and submit the request", active: true },
+            { num: "02", label: "Administrator review", done: false },
+            { num: "03", label: "Sign in with approved access", done: false },
           ].map(({ num, label, active, done }) => (
             <div key={num} className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
-                done
-                  ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400"
-                  : active
-                  ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-400"
-                  : "bg-slate-800 border border-slate-700 text-slate-600"
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                  done
+                    ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400"
+                    : active
+                      ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-400"
+                      : "bg-slate-800 border border-slate-700 text-slate-600"
+                }`}
+              >
                 {done ? <CheckCircle className="h-4 w-4" /> : num}
               </div>
-              <span className={`text-sm font-medium ${
-                done ? "text-emerald-400" : active ? "text-white" : "text-slate-600"
-              }`}>
+              <span
+                className={`text-sm font-medium ${
+                  done
+                    ? "text-emerald-400"
+                    : active
+                      ? "text-white"
+                      : "text-slate-600"
+                }`}
+              >
                 {label}
               </span>
               {active && (
-                <div className="mr-auto">
+                <div className="ml-auto">
                   <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                 </div>
               )}
@@ -222,7 +254,9 @@ export default function Register() {
             <div className="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center mx-auto mb-3">
               <Shield className="h-6 w-6 text-cyan-400" />
             </div>
-            <div className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400">SBTS Professional</div>
+            <div className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400">
+              SBTS Professional
+            </div>
           </div>
 
           {/* Form card */}
@@ -230,10 +264,16 @@ export default function Register() {
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-1.5 h-5 bg-cyan-400 rounded-full" />
-                <span className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400">بيانات التسجيل</span>
+                <span className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400">
+                  Registration details
+                </span>
               </div>
-              <h2 className="text-xl font-black text-white">إنشاء حساب جديد</h2>
-              <p className="text-slate-400 text-xs mt-1">جميع الحقول المميزة بـ * مطلوبة</p>
+              <h2 className="text-xl font-black text-white">
+                Create an account request
+              </h2>
+              <p className="text-slate-400 text-xs mt-1">
+                Fields marked with * are required
+              </p>
             </div>
 
             {/* Error message */}
@@ -249,38 +289,42 @@ export default function Register() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5 text-cyan-400" />
-                  الاسم الكامل *
+                  Full name *
                 </Label>
                 <Input
                   value={form.name}
-                  onChange={(e) => {
-                    setForm((f) => ({ ...f, name: e.target.value }));
-                    if (errors.name) setErrors((er) => ({ ...er, name: "" }));
+                  onChange={e => {
+                    setForm(f => ({ ...f, name: e.target.value }));
+                    if (errors.name) setErrors(er => ({ ...er, name: "" }));
                   }}
-                  placeholder="الاسم الكامل"
+                  placeholder="Full name"
                   className={`bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 h-11 rounded-xl ${errors.name ? "border-red-500" : ""}`}
                 />
-                {errors.name && <p className="text-xs text-red-400">{errors.name}</p>}
+                {errors.name && (
+                  <p className="text-xs text-red-400">{errors.name}</p>
+                )}
               </div>
 
               {/* Email */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5 text-cyan-400" />
-                  البريد الإلكتروني *
+                  Email address *
                 </Label>
                 <Input
                   type="email"
                   value={form.email}
-                  onChange={(e) => {
-                    setForm((f) => ({ ...f, email: e.target.value }));
-                    if (errors.email) setErrors((er) => ({ ...er, email: "" }));
+                  onChange={e => {
+                    setForm(f => ({ ...f, email: e.target.value }));
+                    if (errors.email) setErrors(er => ({ ...er, email: "" }));
                   }}
                   placeholder="example@company.com"
                   dir="ltr"
                   className={`bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 h-11 rounded-xl ${errors.email ? "border-red-500" : ""}`}
                 />
-                {errors.email && <p className="text-xs text-red-400">{errors.email}</p>}
+                {errors.email && (
+                  <p className="text-xs text-red-400">{errors.email}</p>
+                )}
               </div>
 
               {/* Password */}
@@ -288,56 +332,77 @@ export default function Register() {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                     <Lock className="h-3.5 w-3.5 text-cyan-400" />
-                    كلمة المرور *
+                    Password *
                   </Label>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
                       value={form.password}
-                      onChange={(e) => {
-                        setForm((f) => ({ ...f, password: e.target.value }));
-                        if (errors.password) setErrors((er) => ({ ...er, password: "" }));
+                      onChange={e => {
+                        setForm(f => ({ ...f, password: e.target.value }));
+                        if (errors.password)
+                          setErrors(er => ({ ...er, password: "" }));
                       }}
-                      placeholder="8 أحرف على الأقل"
+                      placeholder="At least 8 characters"
                       dir="ltr"
-                      className={`bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 h-11 rounded-xl pl-10 ${errors.password ? "border-red-500" : ""}`}
+                      className={`bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 h-11 rounded-xl pr-10 ${errors.password ? "border-red-500" : ""}`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
-                  {errors.password && <p className="text-xs text-red-400">{errors.password}</p>}
+                  {errors.password && (
+                    <p className="text-xs text-red-400">{errors.password}</p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-300">
-                    تأكيد كلمة المرور *
+                    Confirm password *
                   </Label>
                   <div className="relative">
                     <Input
                       type={showConfirmPassword ? "text" : "password"}
                       value={form.confirmPassword}
-                      onChange={(e) => {
-                        setForm((f) => ({ ...f, confirmPassword: e.target.value }));
-                        if (errors.confirmPassword) setErrors((er) => ({ ...er, confirmPassword: "" }));
+                      onChange={e => {
+                        setForm(f => ({
+                          ...f,
+                          confirmPassword: e.target.value,
+                        }));
+                        if (errors.confirmPassword)
+                          setErrors(er => ({ ...er, confirmPassword: "" }));
                       }}
-                      placeholder="أعد كتابة كلمة المرور"
+                      placeholder="Re-enter your password"
                       dir="ltr"
-                      className={`bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 h-11 rounded-xl pl-10 ${errors.confirmPassword ? "border-red-500" : ""}`}
+                      className={`bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 h-11 rounded-xl pr-10 ${errors.confirmPassword ? "border-red-500" : ""}`}
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                     >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
-                  {errors.confirmPassword && <p className="text-xs text-red-400">{errors.confirmPassword}</p>}
+                  {errors.confirmPassword && (
+                    <p className="text-xs text-red-400">
+                      {errors.confirmPassword}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -345,85 +410,110 @@ export default function Register() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <Briefcase className="h-3.5 w-3.5 text-cyan-400" />
-                  القسم / الإدارة *
+                  Department *
                 </Label>
                 <Select
                   value={form.department}
-                  onValueChange={(v) => {
-                    setForm((f) => ({ ...f, department: v }));
-                    if (errors.department) setErrors((e) => ({ ...e, department: "" }));
+                  onValueChange={v => {
+                    setForm(f => ({ ...f, department: v }));
+                    if (errors.department)
+                      setErrors(e => ({ ...e, department: "" }));
                   }}
                 >
-                  <SelectTrigger className={`bg-slate-800 border-slate-700 text-white h-11 rounded-xl ${errors.department ? "border-red-500" : ""}`}>
-                    <SelectValue placeholder="اختر القسم..." />
+                  <SelectTrigger
+                    className={`bg-slate-800 border-slate-700 text-white h-11 rounded-xl ${errors.department ? "border-red-500" : ""}`}
+                  >
+                    <SelectValue placeholder="Select a department..." />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    {DEPARTMENTS.map((d) => (
-                      <SelectItem key={d} value={d} className="text-slate-200 focus:bg-slate-700 focus:text-white">
+                    {DEPARTMENTS.map(d => (
+                      <SelectItem
+                        key={d}
+                        value={d}
+                        className="text-slate-200 focus:bg-slate-700 focus:text-white"
+                      >
                         {d}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.department && <p className="text-xs text-red-400">{errors.department}</p>}
+                {errors.department && (
+                  <p className="text-xs text-red-400">{errors.department}</p>
+                )}
               </div>
 
               {/* Specialty */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5 text-cyan-400" />
-                  التخصص / الدور الوظيفي *
+                  Specialty / Job role *
                 </Label>
                 <Select
                   value={form.specialty}
-                  onValueChange={(v) => {
-                    setForm((f) => ({ ...f, specialty: v }));
-                    if (errors.specialty) setErrors((e) => ({ ...e, specialty: "" }));
+                  onValueChange={v => {
+                    setForm(f => ({ ...f, specialty: v }));
+                    if (errors.specialty)
+                      setErrors(e => ({ ...e, specialty: "" }));
                   }}
                 >
-                  <SelectTrigger className={`bg-slate-800 border-slate-700 text-white h-11 rounded-xl ${errors.specialty ? "border-red-500" : ""}`}>
-                    <SelectValue placeholder="اختر تخصصك..." />
+                  <SelectTrigger
+                    className={`bg-slate-800 border-slate-700 text-white h-11 rounded-xl ${errors.specialty ? "border-red-500" : ""}`}
+                  >
+                    <SelectValue placeholder="Select a specialty..." />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    {SPECIALTIES.map((s) => (
-                      <SelectItem key={s} value={s} className="text-slate-200 focus:bg-slate-700 focus:text-white">
+                    {SPECIALTIES.map(s => (
+                      <SelectItem
+                        key={s}
+                        value={s}
+                        className="text-slate-200 focus:bg-slate-700 focus:text-white"
+                      >
                         {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.specialty && <p className="text-xs text-red-400">{errors.specialty}</p>}
+                {errors.specialty && (
+                  <p className="text-xs text-red-400">{errors.specialty}</p>
+                )}
               </div>
 
               {/* Employee Number */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <Hash className="h-3.5 w-3.5 text-cyan-400" />
-                  رقم الموظف / Badge Number *
+                  Employee / Badge number *
                 </Label>
                 <Input
                   value={form.employeeNumber}
-                  onChange={(e) => {
-                    setForm((f) => ({ ...f, employeeNumber: e.target.value }));
-                    if (errors.employeeNumber) setErrors((er) => ({ ...er, employeeNumber: "" }));
+                  onChange={e => {
+                    setForm(f => ({ ...f, employeeNumber: e.target.value }));
+                    if (errors.employeeNumber)
+                      setErrors(er => ({ ...er, employeeNumber: "" }));
                   }}
-                  placeholder="مثال: EMP-12345"
+                  placeholder="Example: EMP-12345"
                   className={`bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 h-11 rounded-xl ${errors.employeeNumber ? "border-red-500" : ""}`}
                   dir="ltr"
                 />
-                {errors.employeeNumber && <p className="text-xs text-red-400">{errors.employeeNumber}</p>}
+                {errors.employeeNumber && (
+                  <p className="text-xs text-red-400">
+                    {errors.employeeNumber}
+                  </p>
+                )}
               </div>
 
               {/* Registration Note */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <FileText className="h-3.5 w-3.5 text-slate-400" />
-                  ملاحظات إضافية (اختياري)
+                  Additional notes (optional)
                 </Label>
                 <Textarea
                   value={form.registrationNote}
-                  onChange={(e) => setForm((f) => ({ ...f, registrationNote: e.target.value }))}
-                  placeholder="أي معلومات إضافية تود إضافتها لمسؤول النظام..."
+                  onChange={e =>
+                    setForm(f => ({ ...f, registrationNote: e.target.value }))
+                  }
+                  placeholder="Add any information the System Administrator should review..."
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 rounded-xl resize-none"
                   rows={3}
                 />
@@ -436,13 +526,13 @@ export default function Register() {
               >
                 {registerMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                    جاري إرسال الطلب...
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting request...
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="h-4 w-4 ml-2" />
-                    إرسال طلب التسجيل
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Submit registration request
                   </>
                 )}
               </Button>
@@ -456,7 +546,7 @@ export default function Register() {
               onClick={() => setLocation("/login")}
               className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
             >
-              لديك حساب بالفعل؟ تسجيل الدخول
+              Already have an account? Sign in
             </button>
           </div>
         </div>

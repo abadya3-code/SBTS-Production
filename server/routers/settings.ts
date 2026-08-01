@@ -23,6 +23,21 @@ import {
   upsertWorkflowPolicySettings,
 } from "../db";
 import { storagePut } from "../storage";
+import {
+  sanitizeTagLayout,
+  sanitizeTagTemplateSlots,
+} from "../../shared/tagLayout";
+
+function parseSettingsJson(value: string, label: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `${label} must contain valid JSON.`,
+    });
+  }
+}
 
 export const settingsRouter = router({
   appearance: router({
@@ -251,6 +266,8 @@ export const settingsRouter = router({
       tagShowQR: z.boolean().optional(),
       tagHoleEnabled: z.boolean().optional(),
       tagHolePosition: z.string().trim().max(20).optional(),
+      layoutJson: z.string().max(100_000).nullable().optional(),
+      templateSlotsJson: z.string().max(300_000).nullable().optional(),
     })).mutation(async ({ input, ctx }) => {
       const data: Record<string, unknown> = {};
       if (input.tagPrefix !== undefined) data.tagPrefix = input.tagPrefix;
@@ -277,6 +294,25 @@ export const settingsRouter = router({
       if (input.tagShowQR !== undefined) data.tagShowQR = input.tagShowQR ? 1 : 0;
       if (input.tagHoleEnabled !== undefined) data.tagHoleEnabled = input.tagHoleEnabled ? 1 : 0;
       if (input.tagHolePosition !== undefined) data.tagHolePosition = input.tagHolePosition;
+      if (input.layoutJson !== undefined) {
+        data.layoutJson = input.layoutJson === null
+          ? null
+          : JSON.stringify(
+              sanitizeTagLayout(parseSettingsJson(input.layoutJson, "Tag layout"), {
+                widthMm: input.tagWidth,
+                heightMm: input.tagHeight,
+              })
+            );
+      }
+      if (input.templateSlotsJson !== undefined) {
+        data.templateSlotsJson = input.templateSlotsJson === null
+          ? null
+          : JSON.stringify(
+              sanitizeTagTemplateSlots(
+                parseSettingsJson(input.templateSlotsJson, "Tag templates")
+              )
+            );
+      }
       return upsertDefaultTagSettings(data, ctx.user.openId);
     }),
   }),
@@ -396,6 +432,9 @@ export const settingsRouter = router({
       workflowApprovalRequired: z.boolean().optional(),
       safetyHoldPlaced: z.boolean().optional(),
       safetyHoldReleased: z.boolean().optional(),
+      qrTokenChanged: z.boolean().optional(),
+      certificateStatusChanged: z.boolean().optional(),
+      tagPrintRequested: z.boolean().optional(),
       systemAnnouncement: z.boolean().optional(),
     })).mutation(async ({ input, ctx }) => {
       const data = Object.fromEntries(

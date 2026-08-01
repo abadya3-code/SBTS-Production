@@ -18,7 +18,11 @@ const mockDb = vi.hoisted(() => {
 
   // Default chain resolutions
   mockLimit.mockResolvedValue([]);
-  mockWhere.mockReturnValue({ orderBy: mockOrderBy, limit: mockLimit, where: mockWhere });
+  mockWhere.mockReturnValue({
+    orderBy: mockOrderBy,
+    limit: mockLimit,
+    where: mockWhere,
+  });
   mockOrderBy.mockReturnValue({ limit: mockLimit });
   mockSet.mockReturnValue({ where: mockWhere });
   mockFrom.mockReturnValue({ where: mockWhere, limit: mockLimit });
@@ -41,7 +45,7 @@ vi.mock("./db/core", () => ({
   requireDb: vi.fn().mockResolvedValue(mockDb),
 }));
 
-vi.mock("../../drizzle/schema", () => ({
+vi.mock("../drizzle/schema", () => ({
   notifications: {
     id: "id",
     recipientOpenId: "recipientOpenId",
@@ -53,8 +57,11 @@ vi.mock("../../drizzle/schema", () => ({
     linkUrl: "linkUrl",
     projectId: "projectId",
     blindTag: "blindTag",
+    priority: "priority",
     isRead: "isRead",
     readAt: "readAt",
+    isArchived: "isArchived",
+    archivedAt: "archivedAt",
     createdAt: "createdAt",
   },
   notificationPreferences: {
@@ -67,7 +74,10 @@ vi.mock("drizzle-orm", () => ({
   desc: (col: unknown) => ({ desc: col }),
   eq: (col: unknown, val: unknown) => ({ eq: [col, val] }),
   sql: Object.assign(
-    (strings: TemplateStringsArray, ...vals: unknown[]) => ({ sql: strings, vals }),
+    (strings: TemplateStringsArray, ...vals: unknown[]) => ({
+      sql: strings,
+      vals,
+    }),
     { raw: (s: string) => s }
   ),
 }));
@@ -77,8 +87,11 @@ import {
   createNotification,
   broadcastNotification,
   getNotificationsForUser,
+  countUnreadNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  archiveNotification,
+  restoreNotification,
   deleteNotificationById,
 } from "./db/notifications";
 
@@ -101,6 +114,7 @@ describe("createNotification", () => {
         actorName: "Admin",
         type: "registration_request",
         title: "New Registration",
+        priority: "action",
         isRead: 0,
       })
     );
@@ -135,6 +149,7 @@ describe("createNotification", () => {
       linkUrl: "/projects/PRJ-001",
       projectId: "PRJ-001",
       blindTag: "BLD-001",
+      priority: "critical",
     });
     expect(mockDb._mockValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,8 +157,26 @@ describe("createNotification", () => {
         linkUrl: "/projects/PRJ-001",
         projectId: "PRJ-001",
         blindTag: "BLD-001",
+        priority: "critical",
       })
     );
+  });
+
+  it.each([
+    ["qr_token_rotated", "qrTokenChanged"],
+    ["certificate_issued", "certificateStatusChanged"],
+    ["tag_printed", "tagPrintRequested"],
+  ])("respects the %s preference mapping", async (type, preferenceKey) => {
+    mockDb._mockLimit.mockResolvedValueOnce([{ [preferenceKey]: 0 }]);
+
+    await createNotification({
+      recipientOpenId: "user-preference",
+      type: type as never,
+      title: "Controlled event",
+      body: "Preference contract test.",
+    });
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
   });
 });
 
@@ -180,8 +213,10 @@ describe("broadcastNotification", () => {
       title: "Maintenance",
       body: "Scheduled downtime tonight.",
     });
-    const callArg = mockDb._mockValues.mock.calls[0][0] as Array<{ isRead: number }>;
-    expect(callArg.every((row) => row.isRead === 0)).toBe(true);
+    const callArg = mockDb._mockValues.mock.calls[0][0] as Array<{
+      isRead: number;
+    }>;
+    expect(callArg.every(row => row.isRead === 0)).toBe(true);
   });
 });
 
@@ -196,13 +231,84 @@ describe("getNotificationsForUser", () => {
 
   it("returns notifications for the given user", async () => {
     const mockNotifs = [
-      { id: 1, recipientOpenId: "user-1", isRead: 0, title: "Test", body: "Body", type: "system_announcement", createdAt: new Date() },
-      { id: 2, recipientOpenId: "user-1", isRead: 1, title: "Test 2", body: "Body 2", type: "phase_changed", createdAt: new Date() },
+      {
+        id: 1,
+        recipientOpenId: "user-1",
+        isRead: 0,
+        title: "Test",
+        body: "Body",
+        type: "system_announcement",
+        createdAt: new Date(),
+      },
+      {
+        id: 2,
+        recipientOpenId: "user-1",
+        isRead: 1,
+        title: "Test 2",
+        body: "Body 2",
+        type: "phase_changed",
+        createdAt: new Date(),
+      },
     ];
     mockDb._mockLimit.mockResolvedValueOnce(mockNotifs);
     const result = await getNotificationsForUser("user-1");
     expect(result).toHaveLength(2);
     expect(result[0]?.title).toBe("Test");
+  });
+
+  it("applies ownership, archive, unread, type, and priority filters", async () => {
+    mockDb._mockLimit.mockResolvedValueOnce([]);
+
+    await getNotificationsForUser("filter-owner", {
+      scope: "archived",
+      unreadOnly: true,
+      type: "workflow_gate_blocked",
+      priority: "critical",
+      limit: 999,
+    });
+
+    expect(mockDb._mockWhere).toHaveBeenCalledWith({
+      and: [
+        { eq: ["recipientOpenId", "filter-owner"] },
+        { eq: ["isArchived", 1] },
+        { eq: ["isRead", 0] },
+        { eq: ["type", "workflow_gate_blocked"] },
+        { eq: ["priority", "critical"] },
+      ],
+    });
+    expect(mockDb._mockLimit).toHaveBeenCalledWith(200);
+  });
+
+  it("defaults the inbox scope to active records", async () => {
+    mockDb._mockLimit.mockResolvedValueOnce([]);
+
+    await getNotificationsForUser("active-owner");
+
+    expect(mockDb._mockWhere).toHaveBeenCalledWith({
+      and: [
+        { eq: ["recipientOpenId", "active-owner"] },
+        { eq: ["isArchived", 0] },
+      ],
+    });
+  });
+});
+
+describe("countUnreadNotifications", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("counts only unread active records owned by the user", async () => {
+    mockDb._mockWhere.mockResolvedValueOnce([{ count: 3 }]);
+
+    const count = await countUnreadNotifications("badge-owner");
+
+    expect(count).toBe(3);
+    expect(mockDb._mockWhere).toHaveBeenCalledWith({
+      and: [
+        { eq: ["recipientOpenId", "badge-owner"] },
+        { eq: ["isRead", 0] },
+        { eq: ["isArchived", 0] },
+      ],
+    });
   });
 });
 
@@ -236,5 +342,35 @@ describe("deleteNotificationById", () => {
   it("calls delete with the correct id and recipientOpenId guard", async () => {
     await deleteNotificationById(99, "user-1");
     expect(mockDb.delete).toHaveBeenCalledOnce();
+    expect(mockDb._mockWhere).toHaveBeenCalledWith({
+      and: [{ eq: ["id", 99] }, { eq: ["recipientOpenId", "user-1"] }],
+    });
+  });
+});
+
+describe("archive ownership", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("archives only a notification owned by the recipient", async () => {
+    await archiveNotification(21, "archive-owner");
+
+    expect(mockDb._mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ isArchived: 1, isRead: 1 })
+    );
+    expect(mockDb._mockWhere).toHaveBeenCalledWith({
+      and: [{ eq: ["id", 21] }, { eq: ["recipientOpenId", "archive-owner"] }],
+    });
+  });
+
+  it("restores only a notification owned by the recipient", async () => {
+    await restoreNotification(22, "restore-owner");
+
+    expect(mockDb._mockSet).toHaveBeenCalledWith({
+      isArchived: 0,
+      archivedAt: null,
+    });
+    expect(mockDb._mockWhere).toHaveBeenCalledWith({
+      and: [{ eq: ["id", 22] }, { eq: ["recipientOpenId", "restore-owner"] }],
+    });
   });
 });

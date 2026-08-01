@@ -1,16 +1,16 @@
-SBTS 2.2.2 SPRINT 5 RECOVERY RC7 — LOCAL VERIFICATION
+SBTS 2.2.2 SPRINT 5 RECOVERY RC8 — LOCAL VERIFICATION
 Generated: 2026-08-01
 
 Release identity
   package.json: 2.2.2
   VERSION:      2.2.2
   server build: 2.2.2 + immutable build commit
-  release contract: PASSED (37 required files)
+  release contract: PASSED (38 required files)
 
 Foundation gate
   foundation verification components: PASSED
   TypeScript: PASSED (0 errors)
-  Vitest: PASSED (29 files, 268/268 tests)
+  Vitest: PASSED (29 files, 270/270 tests)
   Sprint 2 static: PASSED (73/73)
   Sprint 3 static: PASSED (40/40)
   Sprint 4 static: PASSED (66/66)
@@ -53,7 +53,19 @@ RC7 dashboard phase-column correction
   SQL regression coverage and the hosted schema contract both validate the
   mapping. No database migration or data reset is required.
 
+RC8 workflow/dashboard/English UI correction
+  Checklist response and phase-readiness updates are atomic and missing or
+  incomplete canonical checklist rows cannot pass the safety gate. The Blind
+  Overview exposes an explicit authorized phase-completion action, project
+  progress is derived from the canonical eight-phase runtime, and Dashboard
+  checklist/activity data refreshes after advancement. Production account,
+  navigation, notification, and administration UI is English/LTR. No database
+  migration, variable change, or data reset is required.
+
 Known scheduled work
+  Next release: secure Blind QR, governed verification, 70x110mm Tag/QR and
+  certificate printing, grouped Workflow Guard Policies, and a shared
+  drag-and-drop Tag Designer renderer.
   Sprint 6: canonical Reports unification and JavaScript route code-splitting.
   Sprint 7: unify Drizzle/domain migration history; db:push remains blocked.
   Later RBAC/data sprint: project-scoped evidence ownership and durable Entry

@@ -21,14 +21,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { bulkPasteColumns, bulkPasteExampleRow, parseBulkPaste } from "@shared/blindBulkPaste";
-import { buildCertificatePdfTableSpec, buildTagsPdfSpec } from "@shared/pdfExports";
+import { buildProjectRegisterPdfSpec } from "@shared/pdfExports";
 import { ProjectHeader } from "@/components/dashboard/ProjectHeader";
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
 import { WorkflowPhases } from "@/components/dashboard/WorkflowPhases";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { BlindsRegistry } from "@/components/dashboard/BlindsRegistry";
 import { canonicalWorkflowPhases } from "@shared/workflowSpecification";
+import { openSanitizedPrintWindow } from "@/lib/printSecurity";
 
 type BlindPhase = "Broken / Preparation" | "Assembly" | "Tight & Torque" | "Final Tight" | "Inspection Ready";
 type BlindPriority = "Low" | "Normal" | "High" | "Critical";
@@ -206,11 +206,7 @@ function escapeHtml(value: string | number | null | undefined) {
   return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char] ?? char));
 }
 
-function safeFileName(value: string) {
-  return value.replace(/[^a-z0-9_-]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "sbts-package";
-}
-
-function buildCertificateHtml(project: ExportProject, blinds: ExportBlind[], metrics: ExportMetrics) {
+function buildProjectRegisterHtml(project: ExportProject, blinds: ExportBlind[], metrics: ExportMetrics) {
   const generatedAt = new Date().toLocaleString();
   const rows = blinds.map((blind, index) => `
     <tr>
@@ -220,7 +216,7 @@ function buildCertificateHtml(project: ExportProject, blinds: ExportBlind[], met
       <td>${blind.type === "Slip Blind" ? `${blind.slipMetalForemanApproved ? "Foreman approved" : "Foreman pending"} / ${blind.slipBlindMerged ? "Merged" : "Not merged"}` : "N/A"}</td><td>${escapeHtml(blind.notes || "")}</td>
     </tr>`).join("");
 
-  return `<!doctype html><html><head><meta charset="utf-8"/><title>${escapeHtml(project.id)} Certificates</title><style>
+  return `<!doctype html><html><head><meta charset="utf-8"/><title>${escapeHtml(project.id)} Blind Register</title><style>
     @page { size: A4 landscape; margin: 12mm; }
     body { font-family: Arial, sans-serif; color:#0f172a; background:#fff; }
     .header { display:flex; justify-content:space-between; gap:24px; border-bottom:3px solid #0e7490; padding-bottom:14px; margin-bottom:18px; }
@@ -232,46 +228,11 @@ function buildCertificateHtml(project: ExportProject, blinds: ExportBlind[], met
     td { border-bottom:1px solid #e2e8f0; padding:8px; vertical-align:top; } span { color:#64748b; font-size:10px; }
     .signatures { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:26px; break-inside:avoid; }
     .signature { border-top:1px solid #334155; padding-top:8px; font-size:12px; color:#334155; min-height:48px; }
-  </style></head><body><section class="header"><div><div class="eyebrow">SBTS unified certificate package</div><h1>${escapeHtml(project.name)}</h1><p>${escapeHtml(project.id)} · ${escapeHtml(project.areaCode)} · ${escapeHtml(project.areaName)}</p></div><div class="meta"><strong>Status:</strong> ${escapeHtml(project.status)}<br/><strong>Progress:</strong> ${escapeHtml(project.progress)}%<br/><strong>Generated:</strong> ${escapeHtml(generatedAt)}</div></section><div class="cards"><div class="card">Planned<b>${metrics.plannedBlinds}</b></div><div class="card">Registered<b>${metrics.registeredBlinds}</b></div><div class="card">High Priority<b>${metrics.highPriorityBlinds}</b></div><div class="card">Critical<b>${metrics.criticalBlinds}</b></div><div class="card">Inspection Ready<b>${metrics.inspectionReadyBlinds}</b></div></div><table><thead><tr><th>#</th><th>Blind Tag</th><th>Type / Size</th><th>Phase</th><th>Priority</th><th>Phase Owner</th><th>Isolation Point</th><th>Slip Gate</th><th>Notes</th></tr></thead><tbody>${rows || "<tr><td colspan='9'>No blind records.</td></tr>"}</tbody></table><div class="signatures"><div class="signature">Operator / Technician</div><div class="signature">T&I Engineer</div><div class="signature">QC Inspector</div><div class="signature">Inspection Authority</div></div></body></html>`;
+  </style></head><body><section class="header"><div><div class="eyebrow">SBTS project blind register</div><h1>${escapeHtml(project.name)}</h1><p>${escapeHtml(project.id)} · ${escapeHtml(project.areaCode)} · ${escapeHtml(project.areaName)}</p></div><div class="meta"><strong>Status:</strong> ${escapeHtml(project.status)}<br/><strong>Progress:</strong> ${escapeHtml(project.progress)}%<br/><strong>Generated:</strong> ${escapeHtml(generatedAt)}</div></section><div class="cards"><div class="card">Planned<b>${metrics.plannedBlinds}</b></div><div class="card">Registered<b>${metrics.registeredBlinds}</b></div><div class="card">High Priority<b>${metrics.highPriorityBlinds}</b></div><div class="card">Critical<b>${metrics.criticalBlinds}</b></div><div class="card">Inspection Ready<b>${metrics.inspectionReadyBlinds}</b></div></div><table><thead><tr><th>#</th><th>Blind Tag</th><th>Type / Size</th><th>Phase</th><th>Priority</th><th>Phase Owner</th><th>Isolation Point</th><th>Slip Gate</th><th>Notes</th></tr></thead><tbody>${rows || "<tr><td colspan='9'>No blind records.</td></tr>"}</tbody></table><div class="signatures"><div class="signature">Operator / Technician</div><div class="signature">T&I Engineer</div><div class="signature">QC Inspector</div><div class="signature">Inspection Authority</div></div></body></html>`;
 }
 
-function buildTagsHtml(project: ExportProject, blinds: ExportBlind[]) {
-  const generatedAt = new Date().toLocaleString();
-  const tags = blinds.map((blind) => `
-    <article class="tag-card">
-      <div class="tag-head"><span>SBTS BLIND TAG</span><strong>${escapeHtml(blind.priority)}</strong></div>
-      <h2>${escapeHtml(blind.tag)}</h2>
-      <div class="qr">${escapeHtml(blind.tag)}</div>
-      <dl><dt>Project</dt><dd>${escapeHtml(project.id)}</dd><dt>Equipment</dt><dd>${escapeHtml(blind.equipment || "N/A")}</dd><dt>Type / Size</dt><dd>${escapeHtml(blind.type)} · ${escapeHtml(blind.size)}${blind.rate ? ` · Rate ${escapeHtml(blind.rate)}` : ""}</dd><dt>Phase</dt><dd>${escapeHtml(blind.phase)}</dd><dt>Phase Owner</dt><dd>${escapeHtml(blind.owner)}</dd><dt>Isolation</dt><dd>${escapeHtml(blind.isolationPoint || "N/A")}</dd></dl>
-      <footer>${escapeHtml(project.areaCode)} · Generated ${escapeHtml(generatedAt)}</footer>
-    </article>`).join("");
-
-  return `<!doctype html><html><head><meta charset="utf-8"/><title>${escapeHtml(project.id)} Tags</title><style>
-    @page { size:A4 portrait; margin:10mm; } body { font-family:Arial,sans-serif; color:#0f172a; margin:0; }
-    .sheet { display:grid; grid-template-columns:repeat(2, 1fr); gap:10mm; }
-    .tag-card { break-inside:avoid; border:2px solid #0f172a; border-radius:16px; padding:12px; min-height:118mm; display:flex; flex-direction:column; }
-    .tag-head { display:flex; justify-content:space-between; align-items:center; color:#0e7490; font-size:11px; font-weight:900; letter-spacing:.16em; text-transform:uppercase; }
-    .tag-head strong { color:#dc2626; letter-spacing:0; } h2 { margin:10px 0; font-size:30px; letter-spacing:.04em; }
-    .qr { display:flex; align-items:center; justify-content:center; height:42mm; border:1px dashed #64748b; border-radius:12px; background:repeating-linear-gradient(45deg,#f8fafc,#f8fafc 4px,#e2e8f0 4px,#e2e8f0 8px); font-weight:900; color:#334155; }
-    dl { display:grid; grid-template-columns:28mm 1fr; gap:6px 10px; margin:12px 0 0; font-size:12px; } dt { font-weight:800; color:#475569; } dd { margin:0; font-weight:700; }
-    footer { margin-top:auto; border-top:1px solid #cbd5e1; padding-top:8px; font-size:10px; color:#64748b; }
-  </style></head><body><main class="sheet">${tags || "<p>No blind tags available.</p>"}</main></body></html>`;
-}
-
-function downloadHtml(filename: string, html: string) {
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
-
-function downloadCertificatePdf(project: ExportProject, blinds: ExportBlind[], metrics: ExportMetrics) {
-  const spec = buildCertificatePdfTableSpec(project, blinds, metrics);
+function downloadProjectRegisterPdf(project: ExportProject, blinds: ExportBlind[], metrics: ExportMetrics) {
+  const spec = buildProjectRegisterPdfSpec(project, blinds, metrics);
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, 297, 24, "F");
@@ -308,60 +269,10 @@ function downloadCertificatePdf(project: ExportProject, blinds: ExportBlind[], m
   doc.save(spec.filename);
 }
 
-function downloadTagsPdf(project: ExportProject, blinds: ExportBlind[]) {
-  const spec = buildTagsPdfSpec(project, blinds);
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  spec.pages.forEach((page, index) => {
-    if (index > 0) doc.addPage();
-    doc.setDrawColor(15, 23, 42);
-    doc.setLineWidth(1.2);
-    doc.roundedRect(12, 12, 186, 260, 4, 4);
-    doc.setFillColor(14, 116, 144);
-    doc.rect(12, 12, 186, 18, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("SBTS BLIND TAG", 18, 23);
-    doc.text(page.priority, 174, 23, { align: "right" });
-    doc.setTextColor(15, 23, 42);
-    doc.setFontSize(30);
-    doc.text(page.tag, 18, 50);
-    doc.setFontSize(13);
-    doc.setFont("helvetica", "normal");
-    autoTable(doc, {
-      startY: 70,
-      body: page.rows,
-      theme: "plain",
-      styles: { fontSize: 12, cellPadding: 3 },
-      columnStyles: { 0: { fontStyle: "bold", textColor: [71, 85, 105], cellWidth: 45 }, 1: { fontStyle: "bold", textColor: [15, 23, 42] } },
-    });
-    doc.setDrawColor(148, 163, 184);
-    doc.roundedRect(50, 154, 110, 62, 4, 4);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(51, 65, 85);
-    doc.text(page.qrLabel, 105, 187, { align: "center" });
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text(page.footerText, 18, 262);
-  });
-  if (spec.pages.length === 0) {
-    doc.setFontSize(14);
-    doc.text(spec.emptyMessage, 20, 30);
-  }
-  doc.save(spec.filename);
-}
-
 function printHtml(html: string) {
-  const printWindow = window.open("", "_blank", "noopener,noreferrer");
-  if (!printWindow) {
-    toast.error("Browser blocked the print window. Allow popups and try again.");
-    return;
-  }
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => printWindow.print(), 300);
+  openSanitizedPrintWindow(html, {
+    onBlocked: () => toast.error("Browser blocked the print window. Allow popups and try again."),
+  });
 }
 
 function FieldGrid({ draft, setDraft, lockTag = false }: { draft: BlindDraft; setDraft: (draft: BlindDraft) => void; lockTag?: boolean }) {
@@ -590,26 +501,20 @@ export default function ProjectDetail() {
     settingsMutation.mutate({ projectId, slipBlindGateRequired: slipBlindGateRequiredDraft, phaseOwners: settingsDraft.map((item) => ({ phase: item.phase, phaseColor: item.phaseColor, owners: item.owners })) });
   };
 
-  const exportCertificates = () => {
+  const exportProjectRegister = () => {
     if (!project || !metrics) return;
-    downloadCertificatePdf(project, blinds as ExportBlind[], metrics);
-    toast.success("Unified certificate package exported as PDF.");
+    downloadProjectRegisterPdf(project, blinds as ExportBlind[], metrics);
+    toast.success("Controlled project blind register exported as PDF.");
   };
 
-  const exportTags = () => {
-    if (!project) return;
-    downloadTagsPdf(project, blinds as ExportBlind[]);
-    toast.success("Unified blind tags package exported as PDF.");
-  };
-
-  const printCertificates = () => {
+  const printProjectRegister = () => {
     if (!project || !metrics) return;
-    printHtml(buildCertificateHtml(project, blinds as ExportBlind[], metrics));
+    printHtml(buildProjectRegisterHtml(project, blinds as ExportBlind[], metrics));
   };
 
-  const printTags = () => {
+  const openTagPrintCenter = () => {
     if (!project) return;
-    printHtml(buildTagsHtml(project, blinds as ExportBlind[]));
+    window.open(`/tags/print/${encodeURIComponent(project.id)}`, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -680,7 +585,6 @@ export default function ProjectDetail() {
             progress={progress}
             description={project.description ?? undefined}
             onEdit={openSettings}
-            onShare={() => toast.info("Share feature coming soon")}
           />
 
           {/* Metrics Cards Component */}
@@ -721,8 +625,8 @@ export default function ProjectDetail() {
               setSingleOpen(true);
             }}
             onBulkPaste={() => setBulkOpen(true)}
-            onPrint={printCertificates}
-            onExport={exportCertificates}
+            onPrint={printProjectRegister}
+            onExport={exportProjectRegister}
             onRefresh={() => detailQuery.refetch()}
             isLoading={detailQuery.isRefetching}
           />
@@ -753,10 +657,6 @@ export default function ProjectDetail() {
               const blind = blinds.find((b) => b.tag === blindId);
               if (blind) openEditBlind(blind as BlindDraft);
             }}
-            onDelete={(blindId) => {
-              // Delete feature to be implemented in Phase 4
-              toast.info(`Delete feature for ${blindId} coming soon`);
-            }}
           />
 
           {/* Recent Activity Component - Placeholder for future activity log integration */}
@@ -771,14 +671,13 @@ export default function ProjectDetail() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-xs font-extrabold uppercase tracking-[0.22em] text-slate-500">Print and export center</div>
-                  <h2 className="mt-2 text-xl font-extrabold text-slate-950">Certificates and tags package</h2>
-                  <p className="mt-2 text-sm font-medium leading-6 text-slate-600">Use one consolidated package when sending certificates or blind tags to the printer instead of saving each item separately.</p>
+                  <h2 className="mt-2 text-xl font-extrabold text-slate-950">Project register and controlled tags</h2>
+                  <p className="mt-2 text-sm font-medium leading-6 text-slate-600">Export the operational register here. Individual certificates remain immutable and verification-controlled, while physical tags use the saved layout and active secure QR URLs.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" className="rounded-2xl bg-white" onClick={exportCertificates}><FileDown className="h-4 w-4" /> Export certificates</Button>
-                  <Button type="button" variant="outline" className="rounded-2xl bg-white" onClick={exportTags}><Tags className="h-4 w-4" /> Export tags</Button>
-                  <Button type="button" variant="outline" className="rounded-2xl bg-white" onClick={printCertificates}><Printer className="h-4 w-4" /> Print certificates</Button>
-                  <Button type="button" variant="outline" className="rounded-2xl bg-white" onClick={printTags}><Printer className="h-4 w-4" /> Print tags</Button>
+                  <Button type="button" variant="outline" className="rounded-2xl bg-white" onClick={exportProjectRegister}><FileDown className="h-4 w-4" /> Export project register</Button>
+                  <Button type="button" variant="outline" className="rounded-2xl bg-white" onClick={printProjectRegister}><Printer className="h-4 w-4" /> Print project register</Button>
+                  <Button type="button" className="rounded-2xl bg-slate-950 text-white hover:bg-slate-800" onClick={openTagPrintCenter}><Tags className="h-4 w-4" /> Open tag print center</Button>
                 </div>
               </div>
             </div>

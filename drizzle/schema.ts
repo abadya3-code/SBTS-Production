@@ -1,6 +1,7 @@
 import {
   date,
   decimal,
+  index,
   int,
   mysqlEnum,
   mysqlTable,
@@ -809,6 +810,11 @@ export const certificateRecordStatusEnum = mysqlEnum(
   "certificateRecordStatus",
   ["issued", "superseded", "revoked"]
 );
+export const blindQrTokenStatusEnum = mysqlEnum("blindQrTokenStatus", [
+  "active",
+  "superseded",
+  "revoked",
+]);
 export const qualitySeverityEnum = mysqlEnum("qualitySeverity", [
   "low",
   "medium",
@@ -1347,6 +1353,44 @@ export const certificateRecords = mysqlTable(
   })
 );
 
+export const blindQrTokens = mysqlTable(
+  "blind_qr_tokens",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    projectId: varchar("projectId", { length: 40 })
+      .notNull()
+      .references(() => projects.id),
+    blindTag: varchar("blindTag", { length: 40 })
+      .notNull()
+      .references(() => blinds.tag),
+    verificationToken: varchar("verificationToken", { length: 96 })
+      .notNull()
+      .unique(),
+    version: int("version").default(1).notNull(),
+    status: blindQrTokenStatusEnum.default("active").notNull(),
+    issuedByOpenId: varchar("issuedByOpenId", { length: 64 }).notNull(),
+    issuedAt: timestamp("issuedAt").defaultNow().notNull(),
+    previousTokenId: int("previousTokenId"),
+    revokedByOpenId: varchar("revokedByOpenId", { length: 64 }),
+    revokedAt: timestamp("revokedAt"),
+    revocationReason: text("revocationReason"),
+    lastScannedAt: timestamp("lastScannedAt"),
+    scanCount: int("scanCount").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    blindQrVersionUnique: uniqueIndex("blind_qr_version_unique").on(
+      table.blindTag,
+      table.version
+    ),
+    blindQrStatusIndex: index("blind_qr_status_idx").on(
+      table.blindTag,
+      table.status
+    ),
+  })
+);
+
 export const defectNotifications = mysqlTable("defect_notifications", {
   id: int("id").autoincrement().primaryKey(),
   defectNumber: varchar("defectNumber", { length: 120 }).notNull().unique(),
@@ -1450,6 +1494,8 @@ export type InspectionActivityTemplateRow =
 export type InspectionActivityRecordRow =
   typeof inspectionActivityRecords.$inferSelect;
 export type CertificateRecordRow = typeof certificateRecords.$inferSelect;
+export type BlindQrTokenRow = typeof blindQrTokens.$inferSelect;
+export type InsertBlindQrToken = typeof blindQrTokens.$inferInsert;
 export type DefectNotificationRow = typeof defectNotifications.$inferSelect;
 export type PunchItemRow = typeof punchItems.$inferSelect;
 export type NdtRecordRow = typeof ndtRecords.$inferSelect;
@@ -1476,8 +1522,8 @@ export const defaultTagSettings = mysqlTable("default_tag_settings", {
   requireIsolationPoint: int("requireIsolationPoint").default(0).notNull(),
   // Visual Settings
   tagColor: varchar("tagColor", { length: 20 }).default("#0f172a"),
-  tagWidth: int("tagWidth").default(85),
-  tagHeight: int("tagHeight").default(55),
+  tagWidth: int("tagWidth").default(70),
+  tagHeight: int("tagHeight").default(110),
   tagFontSize: int("tagFontSize").default(14),
   tagFontColor: varchar("tagFontColor", { length: 20 }).default("#0f172a"),
   tagTheme: varchar("tagTheme", { length: 40 }).default("industrial"),
@@ -1487,6 +1533,8 @@ export const defaultTagSettings = mysqlTable("default_tag_settings", {
   tagHolePosition: varchar("tagHolePosition", { length: 20 }).default(
     "top-center"
   ),
+  layoutJson: text("layoutJson"),
+  templateSlotsJson: text("templateSlotsJson"),
   updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1611,6 +1659,11 @@ export const notificationPreferences = mysqlTable("notification_preferences", {
     .notNull(),
   safetyHoldPlaced: int("safetyHoldPlaced").default(1).notNull(),
   safetyHoldReleased: int("safetyHoldReleased").default(1).notNull(),
+  qrTokenChanged: int("qrTokenChanged").default(1).notNull(),
+  certificateStatusChanged: int("certificateStatusChanged")
+    .default(1)
+    .notNull(),
+  tagPrintRequested: int("tagPrintRequested").default(1).notNull(),
   systemAnnouncement: int("systemAnnouncement").default(1).notNull(),
   updatedByOpenId: varchar("updatedByOpenId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1665,8 +1718,22 @@ export const notificationTypeEnum = mysqlEnum("notificationType", [
   "workflow_approval_required", // approval step requires action
   "safety_hold_placed", // stop-work / safety hold placed
   "safety_hold_released", // safety hold released after approval
+  // QR, printing and certificate governance events
+  "qr_token_issued",
+  "qr_token_rotated",
+  "qr_token_revoked",
+  "certificate_issued",
+  "certificate_revoked",
+  "tag_printed",
   // System events
   "system_announcement", // general system announcement → all users
+]);
+
+export const notificationPriorityEnum = mysqlEnum("notificationPriority", [
+  "info",
+  "action",
+  "warning",
+  "critical",
 ]);
 
 export const notifications = mysqlTable("notifications", {
@@ -1687,9 +1754,12 @@ export const notifications = mysqlTable("notifications", {
   /** Reference IDs for context */
   projectId: varchar("projectId", { length: 40 }),
   blindTag: varchar("blindTag", { length: 80 }),
+  priority: notificationPriorityEnum.default("info").notNull(),
   /** Read state */
   isRead: int("isRead").default(0).notNull(),
   readAt: timestamp("readAt"),
+  isArchived: int("isArchived").default(0).notNull(),
+  archivedAt: timestamp("archivedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

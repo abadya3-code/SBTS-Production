@@ -1,9 +1,27 @@
-# SBTS 2.2.2 — Sprint 5 Recovery Release Candidate
+# SBTS 2.2.2 — Sprint 6 Integrated Release Candidate
 
 SBTS is a full-stack isolation-assurance application for plant blinding and
 de-blinding work. Release 2.2.2 repairs the deployment chain, removes mock
 dashboard data, tightens authentication and RBAC, and establishes a verifiable
-baseline before feature work continues in Sprints 6–12.
+baseline and delivers the first integrated Sprint 6 operational package.
+
+## Sprint 6 integrated outcomes
+
+- Secure, tokenized QR verification is unique to each Blind and supports
+  controlled generation, rotation and revocation with audit and inbox events.
+- Physical Blind Tags use the database-backed 70 × 110 mm layout, top-center
+  hole, three reusable templates and real active QR verification URLs.
+- Governed certificates remain immutable, versioned and SHA-256 verified; the
+  project register is a separate operational export and cannot masquerade as a
+  certificate.
+- Workflow Guard Policies and Default Tag Settings are organized as focused
+  operational configuration workspaces.
+- The operations inbox provides unread, type, priority and archive views with
+  ownership-protected actions and smart links back to the affected record.
+- Generated HTML reports are DOM-sanitized and database-backed fields are
+  escaped before printing; incomplete destructive/share actions stay hidden.
+- Migration `0020_sprint6_qr_print_inbox_designer.sql` is portable, additive,
+  resumable and checked by the Railway schema and production-doctor gates.
 
 ## Recovery outcomes
 
@@ -94,7 +112,7 @@ the exact GitHub `main` commit, and `database: connected`.
 
 - Arabic quick start: `START_HERE_AR.md`
 - Railway setup: `RAILWAY_SETUP_AR.md`
-- Sprint 5 recovery report: `SBTS_2.2.2_SPRINT5_RECOVERY_REPORT_AR.md`
+- Sprint 6 integrated report: `SBTS_2.2.2_SPRINT6_INTEGRATED_RC9_AR.md`
 - Portable hosting: `HOSTING_PORTABILITY.md`
 
 ## Security boundary

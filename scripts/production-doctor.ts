@@ -15,6 +15,7 @@ const requiredTables = [
   "project_workflow_assignments",
   "blind_workflow_runtime",
   "certificate_records",
+  "blind_qr_tokens",
   "areas",
   "projects",
   "blinds",
@@ -64,9 +65,11 @@ async function main() {
     const requiredMigrations = [
       "0018_sprint6_schema_alignment.sql",
       "0019_sprint4_foundation_stabilization.sql",
+      "0020_sprint6_qr_print_inbox_designer.sql",
     ];
+    const migrationPlaceholders = requiredMigrations.map(() => "?").join(", ");
     const [migrationRows] = await connection.query<mysql.RowDataPacket[]>(
-      "SELECT migrationName FROM sbts_domain_migrations WHERE migrationName IN (?, ?)",
+      `SELECT migrationName FROM sbts_domain_migrations WHERE migrationName IN (${migrationPlaceholders})`,
       requiredMigrations,
     );
     const appliedMigrations = new Set(

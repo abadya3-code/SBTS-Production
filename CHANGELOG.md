@@ -1,5 +1,57 @@
 # CHANGELOG — SBTS Professional Edition
 
+## 2.2.2 — Sprint 6 Integrated RC9
+
+- Added secure, per-Blind QR lifecycle governance with unpredictable tokens,
+  controlled generation, rotation and revocation, public allowlisted
+  verification, scan counters, workflow audit records and operations inbox
+  events.
+- Added a physical 70 × 110 mm Blind Tag print center. Tags use only active
+  verification URLs, the saved layout contract and a fixed top-center hole;
+  no JSON payload or decorative placeholder can be printed as a QR code.
+- Rebuilt Default Tag Settings as a bounded drag-and-drop designer with resize,
+  typography, alignment, visibility, physical dimensions and three reusable
+  database-backed templates.
+- Separated the operational Project Blind Register from immutable governed
+  certificates. Certificate printing and PDF saving now use only issued,
+  versioned, SHA-256-verified snapshots with a real verification QR.
+- Reorganized Workflow Guard Policies into clear operational sections while
+  preserving server-authorized, explicit phase submission and the canonical
+  eight-phase state machine.
+- Upgraded Notifications into an operations inbox with active/archive scopes,
+  unread/type/priority filters, ownership-enforced actions, smart links and
+  workflow/certificate/QR/tag events.
+- Added portable migration `0020_sprint6_qr_print_inbox_designer.sql`, hosted
+  schema validation, production-doctor coverage and resumable recovery steps.
+- Kept production UI copy English/LTR and explicitly disabled unsupported
+  offline QR caching until its device-security controls are implemented.
+- Split application routes into lazy production chunks so PDF, reports,
+  settings and project-detail code no longer delay the initial workspace load.
+- Centralized generated-report printing behind DOM sanitization, escaped
+  database-backed report values, removed opener access and hid incomplete
+  Share/Delete actions instead of presenting non-functional controls.
+- Verified 296 Vitest tests, zero TypeScript errors, zero syntax errors and a
+  successful production build.
+
+## 2.2.2 — Sprint 5 Recovery RC8
+
+- Connected the current canonical checklist state to the production Dashboard,
+  including a dedicated checklist-complete metric and per-Blind status.
+- Added an explicit phase-completion action to the readiness banner so the
+  authorized operator can advance safely without leaving the Overview tab.
+- Derived project progress from the canonical eight-phase runtime: completing
+  the first phase now reports 13%, while CLOSED reports 100%.
+- Made checklist response and phase-readiness updates atomic, rejected unknown
+  checklist items, and prevented missing/partial canonical checklist rows from
+  passing a safety gate.
+- Filtered Dashboard activity to accepted and authorized override transitions,
+  invalidated all affected live queries after advancement, and exposed runtime
+  loading errors with a retry action.
+- Standardized the remaining production authentication, account, notification,
+  navigation, and administration UI on English/LTR copy.
+- Added regression coverage for the checklist safety invariant, canonical
+  project progress, explicit submission, dashboard linkage, and cache refresh.
+
 ## 2.2.2 — Sprint 5 Recovery RC7
 
 - Fixed the Drizzle mapping for `workflow_transition_events` so dashboard and

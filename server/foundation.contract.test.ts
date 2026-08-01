@@ -58,6 +58,19 @@ describe("SBTS 2.2 foundational contracts", () => {
     expect(migrationRunner).toContain("ALTER TABLE \\`blinds\\` ADD COLUMN");
   });
 
+  it("keeps the integrated QR, printing and inbox migration resumable", () => {
+    const migrationRunner = read("scripts/apply-sbts-domain-migrations.ts");
+    const migration = read("drizzle/0020_sprint6_qr_print_inbox_designer.sql");
+    const schemaContract = read("scripts/verify-schema-contract.ts");
+
+    expect(migrationRunner).toContain("applyIntegratedRelease0020");
+    expect(migrationRunner).toContain("sprint6AdditiveColumns");
+    expect(migration).toContain("blind_qr_tokens");
+    expect(migration).toContain("notificationPriority");
+    expect(migration).toContain("templateSlotsJson");
+    expect(schemaContract).toContain("0020_sprint6_qr_print_inbox_designer.sql");
+  });
+
   it("validates the physical projects.projectStatus column", () => {
     const schema = read("drizzle/schema.ts");
     const initialProjectMigration = read("drizzle/0003_silly_vengeance.sql");
@@ -95,6 +108,29 @@ describe("SBTS 2.2 foundational contracts", () => {
     expect(schemaContract).toContain("workflow_transition_events");
     expect(schemaContract).toContain('"fromPhaseKey"');
     expect(schemaContract).toContain('"toPhaseKey"');
+  });
+
+  it("connects checklist completion to explicit workflow submission and live reporting", () => {
+    const blindHub = read("client/src/pages/BlindDetailHub.tsx");
+    const dashboard = read("client/src/pages/Dashboard.tsx");
+    const reports = read("server/db/reports.ts");
+    const projectsDb = read("server/db/projects.ts");
+    const workflowDb = read("server/db/workflowRuntime.ts");
+
+    expect(blindHub).toContain("const submitCurrentPhase = () =>");
+    expect(blindHub).toContain("Submit explicitly to advance the workflow");
+    expect(blindHub).toContain(
+      "trpcUtils.reports.dashboardSnapshot.invalidate"
+    );
+    expect(blindHub).toContain("trpcUtils.projects.list.invalidate");
+    expect(dashboard).toContain('label: "Checklist complete"');
+    expect(reports).toContain(
+      'inArray(workflowTransitionEvents.status, ["accepted", "override"])'
+    );
+    expect(projectsDb).toContain("calculateCanonicalWorkflowProgress");
+    expect(workflowDb).toContain(
+      "const checklistResult = await db.transaction"
+    );
   });
 
   it("closes the shared database pool after standalone pre-deploy tasks", () => {

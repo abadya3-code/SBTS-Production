@@ -5,7 +5,8 @@ import {
   type WorkflowLifecycleState,
 } from "./workflowSpecification";
 
-export type WorkflowActionKey = (typeof canonicalWorkflowPhases)[number]["actionKey"];
+export type WorkflowActionKey =
+  (typeof canonicalWorkflowPhases)[number]["actionKey"];
 
 export type WorkflowBlockingCode =
   | "WORKFLOW_LOCKED"
@@ -41,18 +42,32 @@ export type WorkflowBlockingCode =
 export type WorkflowBlockingReason = {
   code: WorkflowBlockingCode;
   message: string;
-  source: "workflow" | "checklist" | "permit" | "loto" | "gasTest" | "torque" | "package" | "hold" | "approval" | "leakTest" | "inspection";
+  source:
+    | "workflow"
+    | "checklist"
+    | "permit"
+    | "loto"
+    | "gasTest"
+    | "torque"
+    | "package"
+    | "hold"
+    | "approval"
+    | "leakTest"
+    | "inspection";
 };
 
 export const workflowPhaseIndex = Object.fromEntries(
-  canonicalPhaseKeys.map((key, index) => [key, index]),
+  canonicalPhaseKeys.map((key, index) => [key, index])
 ) as Record<CanonicalPhaseKey, number>;
 
 export const workflowActionToPhase = Object.fromEntries(
-  canonicalWorkflowPhases.map((phase) => [phase.actionKey, phase.key]),
+  canonicalWorkflowPhases.map(phase => [phase.actionKey, phase.key])
 ) as Record<WorkflowActionKey, CanonicalPhaseKey>;
 
-export const lifecycleAfterPhaseCompletion: Record<CanonicalPhaseKey, WorkflowLifecycleState> = {
+export const lifecycleAfterPhaseCompletion: Record<
+  CanonicalPhaseKey,
+  WorkflowLifecycleState
+> = {
   operationsInitialIsolation: "READY_FOR_BLIND_INSTALLATION",
   blindInstallation: "MECHANICAL_VERIFICATION_PENDING",
   mechanicalVerification: "ACTIVE_ISOLATION",
@@ -63,7 +78,10 @@ export const lifecycleAfterPhaseCompletion: Record<CanonicalPhaseKey, WorkflowLi
   finalApprovalReturnToService: "CLOSED",
 };
 
-export const lifecycleWhilePhaseCurrent: Record<CanonicalPhaseKey, WorkflowLifecycleState> = {
+export const lifecycleWhilePhaseCurrent: Record<
+  CanonicalPhaseKey,
+  WorkflowLifecycleState
+> = {
   operationsInitialIsolation: "INITIAL_ISOLATION",
   blindInstallation: "READY_FOR_BLIND_INSTALLATION",
   mechanicalVerification: "MECHANICAL_VERIFICATION_PENDING",
@@ -75,17 +93,24 @@ export const lifecycleWhilePhaseCurrent: Record<CanonicalPhaseKey, WorkflowLifec
 };
 
 export function getCanonicalPhase(key: CanonicalPhaseKey) {
-  const phase = canonicalWorkflowPhases.find((candidate) => candidate.key === key);
+  const phase = canonicalWorkflowPhases.find(
+    candidate => candidate.key === key
+  );
   if (!phase) throw new Error(`Unknown canonical workflow phase: ${key}`);
   return phase;
 }
 
-export function getNextCanonicalPhase(key: CanonicalPhaseKey): CanonicalPhaseKey | null {
+export function getNextCanonicalPhase(
+  key: CanonicalPhaseKey
+): CanonicalPhaseKey | null {
   const next = canonicalPhaseKeys[workflowPhaseIndex[key] + 1];
   return next ?? null;
 }
 
-export function normalizeChecklistItemKey(label: string, index: number): string {
+export function normalizeChecklistItemKey(
+  label: string,
+  index: number
+): string {
   const normalized = label
     .trim()
     .toLowerCase()
@@ -103,7 +128,7 @@ export function isSlipBlindType(type: string): boolean {
 export function isRecordValidAt(
   status: string | null | undefined,
   validUntil: Date | string | null | undefined,
-  at = new Date(),
+  at = new Date()
 ): boolean {
   if (status !== "active" && status !== "valid") return false;
   if (!validUntil) return true;
@@ -113,6 +138,48 @@ export function isRecordValidAt(
 
 export function allRequiredChecklistItemsComplete(
   rows: readonly { required: boolean; completed: boolean }[],
+  expectedRequiredItems = 1
 ): boolean {
-  return rows.filter((row) => row.required).every((row) => row.completed);
+  const requiredRows = rows.filter(row => row.required);
+  return (
+    requiredRows.length >= expectedRequiredItems &&
+    requiredRows.every(row => row.completed)
+  );
+}
+
+export function calculateCanonicalWorkflowProgress(
+  blindTags: readonly string[],
+  runtimeRows: readonly {
+    blindTag: string;
+    currentPhaseKey: string;
+    lifecycleStatus: string;
+  }[]
+): number {
+  const uniqueBlindTags = Array.from(new Set(blindTags));
+  if (uniqueBlindTags.length === 0) return 0;
+
+  const runtimeByBlindTag = new Map(
+    runtimeRows.map(runtime => [runtime.blindTag, runtime])
+  );
+  const completedPhaseUnits = uniqueBlindTags.reduce((total, blindTag) => {
+    const runtime = runtimeByBlindTag.get(blindTag);
+    if (!runtime) return total;
+    if (runtime.lifecycleStatus === "CLOSED") {
+      return total + canonicalPhaseKeys.length;
+    }
+    if (
+      !canonicalPhaseKeys.includes(runtime.currentPhaseKey as CanonicalPhaseKey)
+    ) {
+      return total;
+    }
+    return (
+      total + workflowPhaseIndex[runtime.currentPhaseKey as CanonicalPhaseKey]
+    );
+  }, 0);
+
+  return Math.round(
+    (completedPhaseUnits /
+      (uniqueBlindTags.length * canonicalPhaseKeys.length)) *
+      100
+  );
 }

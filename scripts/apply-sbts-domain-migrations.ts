@@ -247,6 +247,64 @@ async function applySchemaAlignment0018(
   );
 }
 
+const sprint6AdditiveColumns = new Map<number, readonly [string, string]>([
+  [1, ["default_tag_settings", "layoutJson"]],
+  [2, ["default_tag_settings", "templateSlotsJson"]],
+  [7, ["notifications", "notificationPriority"]],
+  [8, ["notifications", "isArchived"]],
+  [9, ["notifications", "archivedAt"]],
+  [10, ["notification_preferences", "qrTokenChanged"]],
+  [11, ["notification_preferences", "certificateStatusChanged"]],
+  [12, ["notification_preferences", "tagPrintRequested"]],
+]);
+
+/**
+ * Migration 0020 is consumed during Railway pre-deploy and can be interrupted
+ * between an ALTER TABLE and its recovery-step record. MySQL builds used by
+ * Railway do not consistently support ADD COLUMN IF NOT EXISTS, so additive
+ * columns are checked through information_schema before each statement. The
+ * remaining CREATE/MODIFY/UPDATE statements are idempotent and safe to replay.
+ */
+async function applyIntegratedRelease0020(
+  connection: mysql.Connection,
+  migrationName: string,
+  sql: string,
+) {
+  const statements = splitSqlStatements(sql);
+  if (statements.length !== 13) {
+    throw new Error(
+      `Migration ${migrationName} must contain exactly 13 controlled statements.`,
+    );
+  }
+
+  for (let statementIndex = 0; statementIndex < statements.length; statementIndex += 1) {
+    const statement = statements[statementIndex];
+    await recordStep(
+      connection,
+      migrationName,
+      statementIndex,
+      statement,
+      async () => {
+        const additiveColumn = sprint6AdditiveColumns.get(statementIndex);
+        if (additiveColumn) {
+          const [tableName, columnName] = additiveColumn;
+          const [columnRows] = await connection.execute<mysql.RowDataPacket[]>(
+            `SELECT column_name AS columnName
+               FROM information_schema.columns
+              WHERE table_schema = DATABASE()
+                AND table_name = ?
+                AND column_name = ?
+              LIMIT 1`,
+            [tableName, columnName],
+          );
+          if (columnRows.length) return;
+        }
+        await connection.query(statement);
+      },
+    );
+  }
+}
+
 async function main() {
   const connection = await mysql.createConnection(databaseUrl);
   let lockAcquired = false;
@@ -330,6 +388,17 @@ async function main() {
       if (file === "0018_sprint6_schema_alignment.sql") {
         console.log(`→ Applying ${file} with portable schema recovery`);
         await applySchemaAlignment0018(connection, file, sql);
+        await connection.execute(
+          "INSERT INTO sbts_domain_migrations (migrationName, migrationChecksum) VALUES (?, ?)",
+          [file, checksum],
+        );
+        console.log(`✓ Applied ${file}`);
+        continue;
+      }
+
+      if (file === "0020_sprint6_qr_print_inbox_designer.sql") {
+        console.log(`→ Applying ${file} with portable integrated-release recovery`);
+        await applyIntegratedRelease0020(connection, file, sql);
         await connection.execute(
           "INSERT INTO sbts_domain_migrations (migrationName, migrationChecksum) VALUES (?, ?)",
           [file, checksum],

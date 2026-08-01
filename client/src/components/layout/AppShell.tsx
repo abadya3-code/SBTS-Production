@@ -18,12 +18,15 @@ import {
   X,
 } from "lucide-react";
 import { appMeta, navItems, secondaryNavItems } from "@/lib/domainCatalog";
-import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { THEME_STORAGE_KEY, normalizeThemeId, useTheme } from "@/contexts/ThemeContext";
+import {
+  THEME_STORAGE_KEY,
+  normalizeThemeId,
+  useTheme,
+} from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 import { releaseVersion, shortReleaseCommit } from "@/lib/release";
 
@@ -70,11 +73,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Load dynamic settings
   const { data: generalSettings } = trpc.settings.general.get.useQuery();
   const dynamicAppName = (generalSettings as any)?.appName || appMeta.title;
-  const configuredEdition = String((generalSettings as any)?.versionName || "Professional Edition");
-  const dynamicEdition = /(?:v?1\.0|react frontend alpha)/i.test(configuredEdition)
+  const configuredEdition = String(
+    (generalSettings as any)?.versionName || "Professional Edition"
+  );
+  const dynamicEdition = /(?:v?1\.0|react frontend alpha)/i.test(
+    configuredEdition
+  )
     ? "Professional Edition"
     : configuredEdition;
-  const dynamicCompanyName = (generalSettings as any)?.companyName || appMeta.site;
+  const dynamicCompanyName =
+    (generalSettings as any)?.companyName || appMeta.site;
 
   const { data: myAccess } = trpc.accessControl.myAccess.useQuery(undefined, {
     enabled: !loading && !!user,
@@ -87,18 +95,29 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (required === "admin") return false;
     return myAccess?.permissionKeys.includes(required) ?? false;
   };
-  const visibleNavItems = navItems.filter((item) => canSeeNavItem(item.key));
-  const visibleSecondaryNavItems = secondaryNavItems.filter((item) => canSeeNavItem(item.key));
+  const visibleNavItems = navItems.filter(item => canSeeNavItem(item.key));
+  const visibleSecondaryNavItems = secondaryNavItems.filter(item =>
+    canSeeNavItem(item.key)
+  );
 
   // Auth guard
   useEffect(() => {
     if (loading) return;
-    if (!user) { setLocation("/login"); return; }
+    if (!user) {
+      setLocation("/login");
+      return;
+    }
     if ((user as any).role === "admin") return;
     const userStatus = (user as any).userStatus;
-    if (userStatus === "pending" || userStatus === "rejected") { setLocation("/approve"); return; }
+    if (userStatus === "pending" || userStatus === "rejected") {
+      setLocation("/approve");
+      return;
+    }
     if (userStatus === "active") return;
-    if (!userStatus) { setLocation("/register"); return; }
+    if (!userStatus) {
+      setLocation("/register");
+      return;
+    }
   }, [user, loading, setLocation]);
 
   // Pending users count for admin badge
@@ -107,8 +126,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     refetchInterval: 60_000,
   });
   const pendingCount = pendingQuery.data?.length ?? 0;
-
-  const showComingSoon = (label: string) => toast.info(`${label} — قريباً`);
 
   const handleLogout = () => {
     logout();
@@ -121,7 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground text-sm tracking-widest uppercase">
-            جاري التحقق من الصلاحيات...
+            Checking permissions...
           </p>
         </div>
       </div>
@@ -131,13 +148,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!user) return null;
 
   const userInitials = (user as any).name
-    ? (user as any).name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    ? (user as any).name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
     : "U";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* ── Subtle background grid ─────────────────────────────────────── */}
-      <div className="pointer-events-none fixed inset-0 industrial-grid" aria-hidden />
+      <div
+        className="pointer-events-none fixed inset-0 industrial-grid"
+        aria-hidden
+      />
 
       {/* ── Mobile overlay ─────────────────────────────────────────────── */}
       {mobileOpen && (
@@ -176,8 +201,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
               style={{
-                background: "color-mix(in oklch, var(--sidebar-primary) 20%, transparent)",
-                boxShadow: "0 0 0 1px color-mix(in oklch, var(--sidebar-primary) 35%, transparent)",
+                background:
+                  "color-mix(in oklch, var(--sidebar-primary) 20%, transparent)",
+                boxShadow:
+                  "0 0 0 1px color-mix(in oklch, var(--sidebar-primary) 35%, transparent)",
               }}
             >
               <ShieldCheck
@@ -206,7 +233,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span
               className="hidden rounded-full px-2 py-0.5 text-[10px] font-bold sm:inline-block"
               style={{
-                background: "color-mix(in oklch, var(--sidebar-primary) 18%, transparent)",
+                background:
+                  "color-mix(in oklch, var(--sidebar-primary) 18%, transparent)",
                 color: "var(--sidebar-primary)",
               }}
             >
@@ -235,13 +263,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               Command
             </p>
             <nav className="space-y-0.5">
-              {visibleNavItems.map((item) => {
+              {visibleNavItems.map(item => {
                 const Icon = item.icon;
                 const active =
                   location === item.path ||
                   (location === "/" && item.path === "/dashboard") ||
-                  (item.path !== "/dashboard" && location.startsWith(`${item.path}/`)) ||
-                  (item.path === "/projects" && /^\/areas\/[^/]+\/projects(\/.*)?$/.test(location));
+                  (item.path !== "/dashboard" &&
+                    location.startsWith(`${item.path}/`)) ||
+                  (item.path === "/projects" &&
+                    /^\/areas\/[^/]+\/projects(\/.*)?$/.test(location));
                 return (
                   <Link
                     key={item.key}
@@ -260,16 +290,17 @@ export function AppShell({ children }: { children: ReactNode }) {
                         ? "inset 3px 0 0 var(--sidebar-primary)"
                         : "none",
                     }}
-                    onMouseEnter={(e) => {
+                    onMouseEnter={e => {
                       if (!active) {
                         (e.currentTarget as HTMLElement).style.background =
                           "color-mix(in oklch, var(--sidebar-foreground) 8%, transparent)";
                         (e.currentTarget as HTMLElement).style.opacity = "1";
                       }
                     }}
-                    onMouseLeave={(e) => {
+                    onMouseLeave={e => {
                       if (!active) {
-                        (e.currentTarget as HTMLElement).style.background = "transparent";
+                        (e.currentTarget as HTMLElement).style.background =
+                          "transparent";
                         (e.currentTarget as HTMLElement).style.opacity = "0.7";
                       }
                     }}
@@ -277,7 +308,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <Icon
                       className="h-4.5 w-4.5 shrink-0"
                       style={{
-                        color: active ? "var(--sidebar-primary)" : "var(--sidebar-foreground)",
+                        color: active
+                          ? "var(--sidebar-primary)"
+                          : "var(--sidebar-foreground)",
                         opacity: active ? 1 : 0.6,
                       }}
                     />
@@ -308,7 +341,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               Next Modules
             </p>
             <div className="space-y-0.5">
-              {visibleSecondaryNavItems.map((item) => {
+              {visibleSecondaryNavItems.map(item => {
                 const Icon = item.icon;
                 const isActive = location === item.path;
                 return (
@@ -319,7 +352,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       isActive ? "opacity-100" : "opacity-60 hover:opacity-90"
                     )}
                     style={{ color: "var(--sidebar-foreground)" }}
-                    onClick={() => item.path ? setLocation(item.path) : showComingSoon(item.label)}
+                    onClick={() => setLocation(item.path)}
                   >
                     <Icon className="h-4.5 w-4.5 shrink-0" />
                     <span>{item.label}</span>
@@ -338,7 +371,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div
             className="flex items-center gap-3 rounded-xl p-2.5"
             style={{
-              background: "color-mix(in oklch, var(--sidebar-foreground) 6%, transparent)",
+              background:
+                "color-mix(in oklch, var(--sidebar-foreground) 6%, transparent)",
             }}
           >
             <Link
@@ -368,13 +402,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className="truncate text-sm font-bold"
                   style={{ color: "var(--sidebar-foreground)" }}
                 >
-                  {(user as any).name ?? "مستخدم"}
+                  {(user as any).name ?? "User"}
                 </div>
                 <div
                   className="truncate text-xs opacity-55"
                   style={{ color: "var(--sidebar-foreground)" }}
                 >
-                  {user.role === "admin" ? "مسؤول النظام" : (user as any).specialty ?? "مستخدم"}
+                  {user.role === "admin"
+                    ? "System Administrator"
+                    : ((user as any).specialty ?? "User")}
                 </div>
               </div>
             </Link>
@@ -382,7 +418,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={handleLogout}
               className="rounded-lg p-1.5 opacity-50 hover:opacity-100 transition"
               style={{ color: "var(--sidebar-foreground)" }}
-              title="تسجيل الخروج"
+              title="Sign out"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -398,7 +434,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header
           className="sticky top-0 z-30 border-b px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8"
           style={{
-            background: "color-mix(in oklch, var(--background) 85%, transparent)",
+            background:
+              "color-mix(in oklch, var(--background) 85%, transparent)",
             borderColor: "var(--border)",
           }}
         >
@@ -406,7 +443,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* Mobile menu button */}
             <button
               className="rounded-xl border p-2.5 transition hover:bg-muted lg:hidden"
-              style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+              style={{
+                borderColor: "var(--border)",
+                color: "var(--foreground)",
+              }}
               onClick={() => setMobileOpen(true)}
               aria-label="Open sidebar"
             >
@@ -425,7 +465,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span
                   className="rounded-full px-2.5 py-0.5 text-xs font-bold"
                   style={{
-                    background: "color-mix(in oklch, var(--primary) 12%, transparent)",
+                    background:
+                      "color-mix(in oklch, var(--primary) 12%, transparent)",
                     color: "var(--primary)",
                   }}
                 >
@@ -436,7 +477,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className="mt-0.5 truncate text-xs font-medium opacity-55"
                 style={{ color: "var(--foreground)" }}
               >
-                {dynamicCompanyName} · {dynamicEdition} · build {shortReleaseCommit}
+                {dynamicCompanyName} · {dynamicEdition} · build{" "}
+                {shortReleaseCommit}
               </p>
             </div>
 
@@ -462,9 +504,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         {/* ── Page content ────────────────────────────────────────────── */}
-        <main className="px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-          {children}
-        </main>
+        <main className="px-4 py-5 sm:px-6 lg:px-8 lg:py-7">{children}</main>
       </div>
     </div>
   );

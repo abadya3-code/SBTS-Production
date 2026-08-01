@@ -55,6 +55,7 @@ import { toast } from "sonner";
 import { XLSX } from "@/lib/excel";
 import { SurveyDialog } from "@/components/blinds/SurveyDialog";
 import { BlindDetailSheet } from "@/components/blinds/BlindDetailSheet";
+import { escapePrintHtml, openSanitizedPrintWindow } from "@/lib/printSecurity";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -309,9 +310,7 @@ export default function Blinds() {
   function handlePrintReport() {
     const printContent = document.getElementById("slip-blind-print-area");
     if (!printContent) return;
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(`
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -373,16 +372,16 @@ export default function Blinds() {
           <tbody>
             ${rows.map((r) => `
               <tr>
-                <td><strong>${r.tag}</strong></td>
-                <td>${r.projectName}</td>
-                <td>${r.areaName ?? "-"}</td>
-                <td>${r.type}</td>
-                <td>${r.size}</td>
-                <td>${r.phase}</td>
-                <td>${r.priority === "Critical" ? `<span class="badge-critical">${r.priority}</span>` : r.priority}</td>
-                <td><span class="badge-${r.slipStatus}">${STATUS_CONFIG[r.slipStatus]?.label ?? r.slipStatus}</span></td>
+                <td><strong>${escapePrintHtml(r.tag)}</strong></td>
+                <td>${escapePrintHtml(r.projectName)}</td>
+                <td>${escapePrintHtml(r.areaName ?? "-")}</td>
+                <td>${escapePrintHtml(r.type)}</td>
+                <td>${escapePrintHtml(r.size)}</td>
+                <td>${escapePrintHtml(r.phase)}</td>
+                <td>${r.priority === "Critical" ? `<span class="badge-critical">${escapePrintHtml(r.priority)}</span>` : escapePrintHtml(r.priority)}</td>
+                <td><span class="badge-${escapePrintHtml(r.slipStatus)}">${escapePrintHtml(STATUS_CONFIG[r.slipStatus]?.label ?? r.slipStatus)}</span></td>
                 <td>${r.slipMetalForemanApproved ? "✓ Yes" : "No"}</td>
-                <td>${r.location ?? "-"}</td>
+                <td>${escapePrintHtml(r.location ?? "-")}</td>
               </tr>
             `).join("")}
           </tbody>
@@ -414,10 +413,11 @@ export default function Blinds() {
         </div>
       </body>
       </html>
-    `);
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 500);
+    `;
+    openSanitizedPrintWindow(html, {
+      delayMs: 500,
+      onBlocked: () => toast.error("Browser blocked the print window. Allow popups and try again."),
+    });
   }
 
   // ─── Render ────────────────────────────────────────────────────────────────

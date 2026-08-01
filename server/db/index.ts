@@ -177,6 +177,7 @@ export {
   deleteNotificationById,
   deleteOldNotifications,
   getNotificationsForUser,
+  getOperationalNotificationRecipients,
   markAllNotificationsRead,
   markNotificationRead,
 } from "./notifications";

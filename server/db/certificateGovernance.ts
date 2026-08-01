@@ -26,6 +26,10 @@ import { requireDb } from "./core";
 import { getCertificateSettings, getSystemSettings, getWorkflowPolicySettings } from "./settings";
 import { assertAnyWorkflowPermission, ensureBlindWorkflowRuntime } from "./workflowRuntime";
 import { getQualityGateReadiness } from "./qualityGovernance";
+import {
+  broadcastNotification,
+  getOperationalNotificationRecipients,
+} from "./notifications";
 import type { ActingProjectUser } from "./types";
 
 function stable(value: unknown): unknown {
@@ -54,6 +58,42 @@ async function appendCertificateAudit(input: { projectId: string; blindTag: stri
     message,
     actorOpenId: actor.openId,
     actorName: actor.name ?? actor.email ?? actor.openId,
+  });
+}
+
+async function notifyCertificateGovernance(input: {
+  projectId: string;
+  blindTag: string;
+  certificateNumber: string;
+  verificationToken?: string;
+  event: "issued" | "revoked";
+  actor: ActingProjectUser;
+  reason?: string;
+}) {
+  const recipients = await getOperationalNotificationRecipients(
+    ["coordinator", "inspection", "operationsForeman"],
+    [input.actor.openId]
+  );
+  await broadcastNotification(recipients, {
+    actorOpenId: input.actor.openId,
+    actorName: input.actor.name ?? input.actor.email ?? undefined,
+    type:
+      input.event === "issued" ? "certificate_issued" : "certificate_revoked",
+    priority: input.event === "issued" ? "info" : "critical",
+    title:
+      input.event === "issued"
+        ? `Certificate issued · ${input.blindTag}`
+        : `Certificate revoked · ${input.blindTag}`,
+    body:
+      input.event === "issued"
+        ? `${input.certificateNumber} is now the controlled certificate for ${input.blindTag}.`
+        : `${input.certificateNumber} was revoked.${input.reason ? ` Reason: ${input.reason}` : ""}`,
+    linkUrl:
+      input.event === "issued" && input.verificationToken
+        ? `/certificate/verify/${input.verificationToken}`
+        : `/projects/${encodeURIComponent(input.projectId)}/blinds/${encodeURIComponent(input.blindTag)}`,
+    projectId: input.projectId,
+    blindTag: input.blindTag,
   });
 }
 
@@ -142,6 +182,14 @@ export async function issueCertificate(input: { projectId: string; blindTag: str
     id = result[0]?.id;
   });
   await appendCertificateAudit(input, actor, input.reissue ? "Certificate Reissued" : "Certificate Issued", `${number} · version ${version} · SHA-256 ${hash}.`);
+  await notifyCertificateGovernance({
+    projectId: input.projectId,
+    blindTag: input.blindTag,
+    certificateNumber: number,
+    verificationToken,
+    event: "issued",
+    actor,
+  }).catch(() => undefined);
   return { id, certificateNumber: number, verificationToken, version, snapshotHash: hash };
 }
 
@@ -155,6 +203,14 @@ export async function revokeCertificate(input: { certificateId: number; reason: 
   if (row.status !== "issued") throw new Error("Only the current issued certificate can be revoked.");
   await db.update(certificateRecords).set({ status: "revoked", revokedByOpenId: actor.openId, revokedAt: new Date(), revocationReason: input.reason, updatedAt: new Date() }).where(eq(certificateRecords.id, row.id));
   await appendCertificateAudit({ projectId: row.projectId, blindTag: row.blindTag }, actor, "Certificate Revoked", `${row.certificateNumber} revoked. Reason: ${input.reason}`);
+  await notifyCertificateGovernance({
+    projectId: row.projectId,
+    blindTag: row.blindTag,
+    certificateNumber: row.certificateNumber,
+    event: "revoked",
+    actor,
+    reason: input.reason,
+  }).catch(() => undefined);
   return { success: true };
 }
 

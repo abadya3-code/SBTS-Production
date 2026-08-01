@@ -21,6 +21,7 @@ const required = [
   "drizzle/0017_sprint5_auth_deployment_hardening.sql",
   "drizzle/0018_sprint6_schema_alignment.sql",
   "drizzle/0019_sprint4_foundation_stabilization.sql",
+  "drizzle/0020_sprint6_qr_print_inbox_designer.sql",
   "scripts/apply-sbts-domain-migrations.ts",
   "scripts/seed-system-data.ts",
   "scripts/backfill-workflow-runtime.ts",
@@ -40,6 +41,8 @@ const required = [
   "SBTS_2.2.2_RC5_PREDEPLOY_EXIT_HOTFIX_AR.md",
   "SBTS_2.2.2_RC6_PRODUCTION_STARTUP_HOTFIX_AR.md",
   "SBTS_2.2.2_RC7_DASHBOARD_PHASE_COLUMN_HOTFIX_AR.md",
+  "SBTS_2.2.2_RC8_WORKFLOW_DASHBOARD_ENGLISH_UI_AR.md",
+  "SBTS_2.2.2_SPRINT6_INTEGRATED_RC9_AR.md",
   "patches/wouter@3.7.1.patch",
 ];
 

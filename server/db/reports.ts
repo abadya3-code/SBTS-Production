@@ -8,13 +8,24 @@
 
 import { asc, count, desc, eq, gte, lte, and, inArray, sql } from "drizzle-orm";
 import {
-  accessRoles, areas, blinds, blindPhaseApprovals, blindWorkflowLogs,
-  blindWorkflowRuntime, projectPhaseOwners, projects, workflowTransitionEvents,
+  accessRoles,
+  areas,
+  blinds,
+  blindPhaseApprovals,
+  blindWorkflowLogs,
+  blindPhaseInstances,
+  blindWorkflowRuntime,
+  projectPhaseOwners,
+  projects,
+  workflowTransitionEvents,
 } from "../../drizzle/schema";
 import { requireDb } from "./core";
 import { blindPhaseOrder } from "./seed";
 import type { BlindPhase, BlindPriority } from "./types";
-import { canonicalPhaseKeys, canonicalWorkflowPhases } from "../../shared/workflowSpecification";
+import {
+  canonicalPhaseKeys,
+  canonicalWorkflowPhases,
+} from "../../shared/workflowSpecification";
 
 // ─── Report Types ──────────────────────────────────────────────────────────
 
@@ -61,7 +72,12 @@ export interface ReportProjectSummary {
   phaseCounts: Record<BlindPhase, number>;
   priorityCounts: Record<BlindPriority, number>;
   completionRate: number;
-  phaseOwners: { phase: BlindPhase; ownerName: string; ownerRole: string; phaseColor: string }[];
+  phaseOwners: {
+    phase: BlindPhase;
+    ownerName: string;
+    ownerRole: string;
+    phaseColor: string;
+  }[];
 }
 
 export interface ReportAreaSummary {
@@ -100,7 +116,7 @@ function computeBlindStatus(phase: BlindPhase): string {
 function emptyPhaseCounts(): Record<BlindPhase, number> {
   return {
     "Broken / Preparation": 0,
-    "Assembly": 0,
+    Assembly: 0,
     "Tight & Torque": 0,
     "Final Tight": 0,
     "Inspection Ready": 0,
@@ -125,6 +141,7 @@ export async function getDashboardSnapshot() {
     blindCountRows,
     criticalCountRows,
     runtimeCountRows,
+    checklistReadyCountRows,
     roleCountRows,
     phaseRows,
     lifecycleRows,
@@ -134,15 +151,33 @@ export async function getDashboardSnapshot() {
     db.select({ value: count() }).from(areas),
     db.select({ value: count() }).from(projects),
     db.select({ value: count() }).from(blinds),
-    db.select({ value: count() }).from(blinds).where(eq(blinds.priority, "Critical")),
+    db
+      .select({ value: count() })
+      .from(blinds)
+      .where(eq(blinds.priority, "Critical")),
     db.select({ value: count() }).from(blindWorkflowRuntime),
+    db
+      .select({ value: count() })
+      .from(blindPhaseInstances)
+      .where(
+        and(
+          eq(blindPhaseInstances.status, "current"),
+          eq(blindPhaseInstances.checklistComplete, 1)
+        )
+      ),
     db.select({ value: count() }).from(accessRoles),
     db
-      .select({ phaseKey: blindWorkflowRuntime.currentPhaseKey, value: count() })
+      .select({
+        phaseKey: blindWorkflowRuntime.currentPhaseKey,
+        value: count(),
+      })
       .from(blindWorkflowRuntime)
       .groupBy(blindWorkflowRuntime.currentPhaseKey),
     db
-      .select({ lifecycleStatus: blindWorkflowRuntime.lifecycleStatus, value: count() })
+      .select({
+        lifecycleStatus: blindWorkflowRuntime.lifecycleStatus,
+        value: count(),
+      })
       .from(blindWorkflowRuntime)
       .groupBy(blindWorkflowRuntime.lifecycleStatus),
     db
@@ -156,6 +191,7 @@ export async function getDashboardSnapshot() {
         toPhaseKey: workflowTransitionEvents.toPhaseKey,
       })
       .from(workflowTransitionEvents)
+      .where(inArray(workflowTransitionEvents.status, ["accepted", "override"]))
       .orderBy(desc(workflowTransitionEvents.createdAt))
       .limit(12),
     db
@@ -169,15 +205,26 @@ export async function getDashboardSnapshot() {
         owner: blinds.owner,
         phaseKey: blindWorkflowRuntime.currentPhaseKey,
         lifecycleStatus: blindWorkflowRuntime.lifecycleStatus,
+        checklistComplete: blindPhaseInstances.checklistComplete,
         updatedAt: blinds.updatedAt,
       })
       .from(blinds)
       .innerJoin(projects, eq(projects.id, blinds.projectId))
       .innerJoin(areas, eq(areas.id, projects.areaId))
-      .leftJoin(blindWorkflowRuntime, eq(blindWorkflowRuntime.blindTag, blinds.tag))
+      .leftJoin(
+        blindWorkflowRuntime,
+        eq(blindWorkflowRuntime.blindTag, blinds.tag)
+      )
+      .leftJoin(
+        blindPhaseInstances,
+        and(
+          eq(blindPhaseInstances.blindTag, blinds.tag),
+          eq(blindPhaseInstances.phaseKey, blindWorkflowRuntime.currentPhaseKey)
+        )
+      )
       .orderBy(
         sql`FIELD(${blinds.priority}, 'Critical', 'High', 'Normal', 'Low')`,
-        desc(blinds.updatedAt),
+        desc(blinds.updatedAt)
       )
       .limit(12),
   ]);
@@ -185,12 +232,17 @@ export async function getDashboardSnapshot() {
   const totalBlinds = Number(blindCountRows[0]?.value ?? 0);
   const runtimeCount = Number(runtimeCountRows[0]?.value ?? 0);
   const lifecycleCounts = Object.fromEntries(
-    lifecycleRows.map((row) => [row.lifecycleStatus, Number(row.value)]),
+    lifecycleRows.map(row => [row.lifecycleStatus, Number(row.value)])
   ) as Record<string, number>;
   const completedBlinds = lifecycleCounts.CLOSED ?? 0;
   const plannedBlinds = lifecycleCounts.PLANNED ?? 0;
-  const inProgressBlinds = Math.max(0, runtimeCount - completedBlinds - plannedBlinds);
-  const phaseCountMap = new Map(phaseRows.map((row) => [String(row.phaseKey), Number(row.value)]));
+  const inProgressBlinds = Math.max(
+    0,
+    runtimeCount - completedBlinds - plannedBlinds
+  );
+  const phaseCountMap = new Map(
+    phaseRows.map(row => [String(row.phaseKey), Number(row.value)])
+  );
 
   return {
     source: "canonical-runtime-v2" as const,
@@ -203,9 +255,11 @@ export async function getDashboardSnapshot() {
     criticalBlinds: Number(criticalCountRows[0]?.value ?? 0),
     safetyHoldBlinds: lifecycleCounts.SAFETY_HOLD ?? 0,
     uninitializedBlinds: Math.max(0, totalBlinds - runtimeCount),
+    checklistReadyBlinds: Number(checklistReadyCountRows[0]?.value ?? 0),
     activeRoles: Number(roleCountRows[0]?.value ?? 0),
-    completionRate: totalBlinds > 0 ? Math.round((completedBlinds / totalBlinds) * 100) : 0,
-    phases: canonicalWorkflowPhases.map((phase) => ({
+    completionRate:
+      totalBlinds > 0 ? Math.round((completedBlinds / totalBlinds) * 100) : 0,
+    phases: canonicalWorkflowPhases.map(phase => ({
       key: phase.key,
       label: phase.label,
       shortLabel: phase.shortLabel,
@@ -213,13 +267,17 @@ export async function getDashboardSnapshot() {
       color: phase.color,
       count: phaseCountMap.get(phase.key) ?? 0,
     })),
-    recentActivity: recentEvents.map((event) => ({
+    recentActivity: recentEvents.map(event => ({
       ...event,
       actor: event.actor ?? "System",
     })),
-    topBlinds: topBlinds.map((blind) => ({
+    topBlinds: topBlinds.map(blind => ({
       ...blind,
-      phaseKey: canonicalPhaseKeys.includes(blind.phaseKey as (typeof canonicalPhaseKeys)[number])
+      checklistComplete:
+        blind.checklistComplete === null ? null : blind.checklistComplete === 1,
+      phaseKey: canonicalPhaseKeys.includes(
+        blind.phaseKey as (typeof canonicalPhaseKeys)[number]
+      )
         ? blind.phaseKey
         : null,
     })),
@@ -230,7 +288,9 @@ export async function getDashboardSnapshot() {
  * Get all blinds with full project/area context for reporting.
  * Supports optional filters.
  */
-export async function getReportBlinds(filters?: ReportFilters): Promise<ReportBlindRow[]> {
+export async function getReportBlinds(
+  filters?: ReportFilters
+): Promise<ReportBlindRow[]> {
   const db = await requireDb();
 
   const [blindRows, projectRows, areaRows] = await Promise.all([
@@ -239,10 +299,10 @@ export async function getReportBlinds(filters?: ReportFilters): Promise<ReportBl
     db.select().from(areas),
   ]);
 
-  const projectById = new Map(projectRows.map((p) => [p.id, p]));
-  const areaById = new Map(areaRows.map((a) => [a.id, a]));
+  const projectById = new Map(projectRows.map(p => [p.id, p]));
+  const areaById = new Map(areaRows.map(a => [a.id, a]));
 
-  let rows: ReportBlindRow[] = blindRows.map((blind) => {
+  let rows: ReportBlindRow[] = blindRows.map(blind => {
     const project = projectById.get(blind.projectId);
     const area = project ? areaById.get(project.areaId) : undefined;
     return {
@@ -271,24 +331,24 @@ export async function getReportBlinds(filters?: ReportFilters): Promise<ReportBl
   // Apply filters
   if (filters?.areaId) {
     const areaProjects = projectRows
-      .filter((p) => p.areaId === filters.areaId)
-      .map((p) => p.id);
-    rows = rows.filter((r) => areaProjects.includes(r.projectId));
+      .filter(p => p.areaId === filters.areaId)
+      .map(p => p.id);
+    rows = rows.filter(r => areaProjects.includes(r.projectId));
   }
   if (filters?.projectId) {
-    rows = rows.filter((r) => r.projectId === filters.projectId);
+    rows = rows.filter(r => r.projectId === filters.projectId);
   }
   if (filters?.phase) {
-    rows = rows.filter((r) => r.phase === filters.phase);
+    rows = rows.filter(r => r.phase === filters.phase);
   }
   if (filters?.priority) {
-    rows = rows.filter((r) => r.priority === filters.priority);
+    rows = rows.filter(r => r.priority === filters.priority);
   }
   if (filters?.dateFrom) {
-    rows = rows.filter((r) => r.updatedAt >= filters.dateFrom!);
+    rows = rows.filter(r => r.updatedAt >= filters.dateFrom!);
   }
   if (filters?.dateTo) {
-    rows = rows.filter((r) => r.updatedAt <= filters.dateTo!);
+    rows = rows.filter(r => r.updatedAt <= filters.dateTo!);
   }
 
   return rows;
@@ -297,7 +357,9 @@ export async function getReportBlinds(filters?: ReportFilters): Promise<ReportBl
 /**
  * Get full project summaries with computed metrics for reporting.
  */
-export async function getReportProjectSummaries(filters?: ReportFilters): Promise<ReportProjectSummary[]> {
+export async function getReportProjectSummaries(
+  filters?: ReportFilters
+): Promise<ReportProjectSummary[]> {
   const db = await requireDb();
 
   const [projectRows, areaRows, blindRows, ownerRows] = await Promise.all([
@@ -307,7 +369,7 @@ export async function getReportProjectSummaries(filters?: ReportFilters): Promis
     db.select().from(projectPhaseOwners),
   ]);
 
-  const areaById = new Map(areaRows.map((a) => [a.id, a]));
+  const areaById = new Map(areaRows.map(a => [a.id, a]));
   const blindsByProject = new Map<string, typeof blindRows>();
   for (const blind of blindRows) {
     const existing = blindsByProject.get(blind.projectId) ?? [];
@@ -321,7 +383,7 @@ export async function getReportProjectSummaries(filters?: ReportFilters): Promis
     ownersByProject.set(owner.projectId, existing);
   }
 
-  let summaries: ReportProjectSummary[] = projectRows.map((project) => {
+  let summaries: ReportProjectSummary[] = projectRows.map(project => {
     const area = areaById.get(project.areaId);
     const projectBlinds = blindsByProject.get(project.id) ?? [];
     const projectOwners = ownersByProject.get(project.id) ?? [];
@@ -334,15 +396,19 @@ export async function getReportProjectSummaries(filters?: ReportFilters): Promis
     }
 
     const completedBlinds = phaseCounts["Inspection Ready"];
-    const inProgressBlinds = projectBlinds.length - phaseCounts["Broken / Preparation"] - completedBlinds;
+    const inProgressBlinds =
+      projectBlinds.length -
+      phaseCounts["Broken / Preparation"] -
+      completedBlinds;
     const criticalBlinds = priorityCounts.Critical;
     const highPriorityBlinds = priorityCounts.High + priorityCounts.Critical;
-    const completionRate = projectBlinds.length > 0
-      ? Math.round((completedBlinds / projectBlinds.length) * 100)
-      : 0;
+    const completionRate =
+      projectBlinds.length > 0
+        ? Math.round((completedBlinds / projectBlinds.length) * 100)
+        : 0;
 
-    const phaseOwners = blindPhaseOrder.map((phase) => {
-      const ownerRow = projectOwners.find((o) => o.phase === phase);
+    const phaseOwners = blindPhaseOrder.map(phase => {
+      const ownerRow = projectOwners.find(o => o.phase === phase);
       return {
         phase,
         ownerName: ownerRow?.ownerName ?? "Unassigned",
@@ -377,13 +443,13 @@ export async function getReportProjectSummaries(filters?: ReportFilters): Promis
 
   // Apply filters
   if (filters?.areaId) {
-    summaries = summaries.filter((s) => s.areaId === filters.areaId);
+    summaries = summaries.filter(s => s.areaId === filters.areaId);
   }
   if (filters?.projectId) {
-    summaries = summaries.filter((s) => s.id === filters.projectId);
+    summaries = summaries.filter(s => s.id === filters.projectId);
   }
   if (filters?.status) {
-    summaries = summaries.filter((s) => s.status === filters.status);
+    summaries = summaries.filter(s => s.status === filters.status);
   }
 
   return summaries;
@@ -392,7 +458,9 @@ export async function getReportProjectSummaries(filters?: ReportFilters): Promis
 /**
  * Get area-level summaries with aggregated metrics.
  */
-export async function getReportAreaSummaries(filters?: ReportFilters): Promise<ReportAreaSummary[]> {
+export async function getReportAreaSummaries(
+  filters?: ReportFilters
+): Promise<ReportAreaSummary[]> {
   const db = await requireDb();
   const [areaRows] = await Promise.all([
     db.select().from(areas).orderBy(asc(areas.name)),
@@ -400,14 +468,22 @@ export async function getReportAreaSummaries(filters?: ReportFilters): Promise<R
 
   const projectSummaries = await getReportProjectSummaries(filters);
 
-  return areaRows.map((area) => {
-    const areaProjects = projectSummaries.filter((p) => p.areaId === area.id);
-    const totalBlinds = areaProjects.reduce((sum, p) => sum + p.registeredBlinds, 0);
-    const completedBlinds = areaProjects.reduce((sum, p) => sum + p.completedBlinds, 0);
-    const criticalBlinds = areaProjects.reduce((sum, p) => sum + p.criticalBlinds, 0);
-    const completionRate = totalBlinds > 0
-      ? Math.round((completedBlinds / totalBlinds) * 100)
-      : 0;
+  return areaRows.map(area => {
+    const areaProjects = projectSummaries.filter(p => p.areaId === area.id);
+    const totalBlinds = areaProjects.reduce(
+      (sum, p) => sum + p.registeredBlinds,
+      0
+    );
+    const completedBlinds = areaProjects.reduce(
+      (sum, p) => sum + p.completedBlinds,
+      0
+    );
+    const criticalBlinds = areaProjects.reduce(
+      (sum, p) => sum + p.criticalBlinds,
+      0
+    );
+    const completionRate =
+      totalBlinds > 0 ? Math.round((completedBlinds / totalBlinds) * 100) : 0;
 
     return {
       id: area.id,
@@ -440,7 +516,13 @@ export async function getReportGlobalStats(): Promise<{
   phaseCounts: Record<BlindPhase, number>;
   priorityCounts: Record<BlindPriority, number>;
   projectsByStatus: Record<string, number>;
-  recentActivity: { date: Date; action: string; actor: string; blindTag: string; projectId: string }[];
+  recentActivity: {
+    date: Date;
+    action: string;
+    actor: string;
+    blindTag: string;
+    projectId: string;
+  }[];
 }> {
   const db = await requireDb();
 
@@ -448,7 +530,11 @@ export async function getReportGlobalStats(): Promise<{
     db.select().from(areas),
     db.select().from(projects),
     db.select().from(blinds),
-    db.select().from(blindWorkflowLogs).orderBy(desc(blindWorkflowLogs.createdAt)).limit(20),
+    db
+      .select()
+      .from(blindWorkflowLogs)
+      .orderBy(desc(blindWorkflowLogs.createdAt))
+      .limit(20),
   ]);
 
   const phaseCounts = emptyPhaseCounts();
@@ -459,17 +545,20 @@ export async function getReportGlobalStats(): Promise<{
   }
 
   const completedBlinds = phaseCounts["Inspection Ready"];
-  const inProgressBlinds = blindRows.length - phaseCounts["Broken / Preparation"] - completedBlinds;
-  const completionRate = blindRows.length > 0
-    ? Math.round((completedBlinds / blindRows.length) * 100)
-    : 0;
+  const inProgressBlinds =
+    blindRows.length - phaseCounts["Broken / Preparation"] - completedBlinds;
+  const completionRate =
+    blindRows.length > 0
+      ? Math.round((completedBlinds / blindRows.length) * 100)
+      : 0;
 
   const projectsByStatus: Record<string, number> = {};
   for (const project of projectRows) {
-    projectsByStatus[project.status] = (projectsByStatus[project.status] ?? 0) + 1;
+    projectsByStatus[project.status] =
+      (projectsByStatus[project.status] ?? 0) + 1;
   }
 
-  const recentActivity = recentLogs.map((log) => ({
+  const recentActivity = recentLogs.map(log => ({
     date: log.createdAt,
     action: log.action,
     actor: log.actorName ?? log.actorOpenId ?? "System",

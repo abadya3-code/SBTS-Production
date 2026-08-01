@@ -70,10 +70,12 @@ export function ProjectHeader({
               <Edit2 className="mr-2 h-4 w-4" />
               Edit Project
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onShare} className="cursor-pointer">
-              <Share2 className="mr-2 h-4 w-4" />
-              Share Project
-            </DropdownMenuItem>
+            {onShare && (
+              <DropdownMenuItem onClick={onShare} className="cursor-pointer">
+                <Share2 className="mr-2 h-4 w-4" />
+                Share Project
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

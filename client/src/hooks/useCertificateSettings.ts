@@ -4,6 +4,7 @@
  * Used by all report components to automatically apply logo, signatures, and print settings.
  */
 import { trpc } from "@/lib/trpc";
+import { escapePrintHtml, openSanitizedPrintWindow } from "@/lib/printSecurity";
 
 export interface CertificateSettingsData {
   certificateTitle: string;
@@ -110,7 +111,7 @@ export function getPaperCSS(paperSize: string, orientation: string): string {
 export function buildReportHeader(settings: CertificateSettingsData, reportTitle: string): string {
   const logoHtml =
     settings.logoUrl
-      ? `<img src="${settings.logoUrl}" alt="Company Logo" style="height:60px;max-width:180px;object-fit:contain;" />`
+      ? `<img src="${escapePrintHtml(settings.logoUrl)}" alt="Company Logo" style="height:60px;max-width:180px;object-fit:contain;" />`
       : "";
 
   return `
@@ -123,10 +124,10 @@ export function buildReportHeader(settings: CertificateSettingsData, reportTitle
       margin-bottom:28px;
     ">
       <div style="flex:1;">
-        <h1 style="margin:0;font-size:22px;font-weight:800;color:#0f172a;">${settings.certificateTitle}</h1>
-        <h2 style="margin:6px 0 0 0;font-size:16px;font-weight:600;color:#334155;">${reportTitle}</h2>
-        <div style="font-size:13px;color:#64748b;margin-top:4px;">${settings.headerCompanyName}</div>
-        <div style="font-size:12px;color:#94a3b8;margin-top:2px;">${settings.headerSubtitle}</div>
+        <h1 style="margin:0;font-size:22px;font-weight:800;color:#0f172a;">${escapePrintHtml(settings.certificateTitle)}</h1>
+        <h2 style="margin:6px 0 0 0;font-size:16px;font-weight:600;color:#334155;">${escapePrintHtml(reportTitle)}</h2>
+        <div style="font-size:13px;color:#64748b;margin-top:4px;">${escapePrintHtml(settings.headerCompanyName)}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px;">${escapePrintHtml(settings.headerSubtitle)}</div>
       </div>
       ${logoHtml ? `<div style="margin-left:20px;">${logoHtml}</div>` : ""}
     </div>
@@ -152,9 +153,9 @@ export function buildSignaturesSection(settings: CertificateSettingsData): strin
           padding-top:10px;
           margin-top:40px;
         ">
-          <div style="font-size:13px;font-weight:700;color:#0f172a;">${sig.label}</div>
-          ${sig.name ? `<div style="font-size:12px;color:#334155;margin-top:4px;">${sig.name}</div>` : ""}
-          ${sig.title ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${sig.title}</div>` : ""}
+          <div style="font-size:13px;font-weight:700;color:#0f172a;">${escapePrintHtml(sig.label)}</div>
+          ${sig.name ? `<div style="font-size:12px;color:#334155;margin-top:4px;">${escapePrintHtml(sig.name)}</div>` : ""}
+          ${sig.title ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${escapePrintHtml(sig.title)}</div>` : ""}
         </div>
       </div>
     `
@@ -198,7 +199,7 @@ export function buildReportFooter(settings: CertificateSettingsData): string {
       color:#94a3b8;
       font-size:11px;
     ">
-      <p style="margin:0 0 4px 0;">${footerText}</p>
+      <p style="margin:0 0 4px 0;">${escapePrintHtml(footerText)}</p>
       ${generatedLine}
       ${systemLine}
     </div>
@@ -214,9 +215,6 @@ export function openPrintWindow(
   reportTitle: string,
   windowTitle: string
 ): void {
-  const printWindow = window.open("", "_blank", "noopener,noreferrer");
-  if (!printWindow) return;
-
   const pageCSS = getPaperCSS(settings.paperSize, settings.orientation);
   const header = buildReportHeader(settings, reportTitle);
   const signatures = buildSignaturesSection(settings);
@@ -227,7 +225,7 @@ export function openPrintWindow(
     <html dir="ltr" lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>${windowTitle}</title>
+        <title>${escapePrintHtml(windowTitle)}</title>
         <style>
           ${pageCSS}
           * { box-sizing: border-box; }
@@ -278,8 +276,5 @@ export function openPrintWindow(
     </html>
   `;
 
-  printWindow.document.write(fullHtml);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => printWindow.print(), 400);
+  openSanitizedPrintWindow(fullHtml, { delayMs: 400 });
 }

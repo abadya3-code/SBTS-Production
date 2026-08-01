@@ -1,4 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { trpc } from "@/lib/trpc";
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -29,7 +35,7 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "standard",
     name: "Standard",
-    description: "نظيف، فاتح، احترافي",
+    description: "Clean, light, and professional",
     isDark: false,
     preview: {
       bg: "#f6f8fc",
@@ -41,7 +47,7 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "modern",
     name: "Modern",
-    description: "داكن، صناعي، خاص بالتطبيق",
+    description: "Dark, industrial, and application-focused",
     isDark: true,
     preview: {
       bg: "#0d1117",
@@ -53,7 +59,7 @@ export const THEMES: ThemeDefinition[] = [
   {
     id: "manus",
     name: "Manus Edition",
-    description: "إصدار خاص، premium violet",
+    description: "Premium violet special edition",
     isDark: true,
     preview: {
       bg: "#0c0a1a",
@@ -81,10 +87,14 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const THEME_STORAGE_KEY = "sbts-theme-v2";
 const DEFAULT_THEME: ThemeId = "standard";
 
-export function normalizeThemeId(value: string | null | undefined): ThemeId | null {
+export function normalizeThemeId(
+  value: string | null | undefined
+): ThemeId | null {
   if (!value) return null;
-  if (value === "standard" || value === "light" || value === "system") return "standard";
-  if (value === "modern" || value === "dark" || value === "sbts-custom") return "modern";
+  if (value === "standard" || value === "light" || value === "system")
+    return "standard";
+  if (value === "modern" || value === "dark" || value === "sbts-custom")
+    return "modern";
   if (value === "manus") return "manus";
   return null;
 }
@@ -92,7 +102,10 @@ export function normalizeThemeId(value: string | null | undefined): ThemeId | nu
 /* ── Provider ─────────────────────────────────────────────────────────────── */
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { data: appearance } = trpc.settings.appearance.get.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
+  const { data: appearance } = trpc.settings.appearance.get.useQuery(
+    undefined,
+    { staleTime: 5 * 60 * 1000 }
+  );
   const [themeId, setThemeId] = useState<ThemeId>(() => {
     try {
       const saved = normalizeThemeId(localStorage.getItem(THEME_STORAGE_KEY));
@@ -106,8 +119,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!appearance) return;
     let saved: ThemeId | null = null;
-    try { saved = normalizeThemeId(localStorage.getItem(THEME_STORAGE_KEY)); } catch {}
-    const systemTheme = normalizeThemeId(appearance.defaultTheme) ?? DEFAULT_THEME;
+    try {
+      saved = normalizeThemeId(localStorage.getItem(THEME_STORAGE_KEY));
+    } catch {}
+    const systemTheme =
+      normalizeThemeId(appearance.defaultTheme) ?? DEFAULT_THEME;
     if (!appearance.allowUserThemeOverride || !saved) {
       setThemeId(systemTheme);
     }
@@ -121,7 +137,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Set new theme
     root.setAttribute("data-theme", id);
     // Sync color-scheme meta for browser UI (scrollbars, inputs)
-    const def = THEMES.find((t) => t.id === id)!;
+    const def = THEMES.find(t => t.id === id)!;
     root.style.colorScheme = def.isDark ? "dark" : "light";
   }, []);
 
@@ -142,7 +158,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [allowUserThemeOverride, appearance, applyTheme]
   );
 
-  const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[0];
+  const theme = THEMES.find(t => t.id === themeId) ?? THEMES[0];
 
   return (
     <ThemeContext.Provider

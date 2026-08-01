@@ -35,7 +35,7 @@ export type PdfExportBlind = {
   notes: string | null;
 };
 
-export type CertificatePdfSpec = {
+export type ProjectRegisterPdfSpec = {
   filename: string;
   title: string;
   subtitle: string;
@@ -46,28 +46,14 @@ export type CertificatePdfSpec = {
   footerText: string;
 };
 
-export type TagPdfPageSpec = {
-  priority: PdfBlindPriority;
-  tag: string;
-  rows: string[][];
-  qrLabel: string;
-  footerText: string;
-};
-
-export type TagsPdfSpec = {
-  filename: string;
-  emptyMessage: string;
-  pages: TagPdfPageSpec[];
-};
-
 export function safePdfFileName(value: string) {
   return value.replace(/[^a-z0-9_-]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "sbts-package";
 }
 
-export function buildCertificatePdfTableSpec(project: PdfExportProject, blinds: PdfExportBlind[], metrics: PdfExportMetrics, generatedAt = new Date().toLocaleString()): CertificatePdfSpec {
+export function buildProjectRegisterPdfSpec(project: PdfExportProject, blinds: PdfExportBlind[], metrics: PdfExportMetrics, generatedAt = new Date().toLocaleString()): ProjectRegisterPdfSpec {
   return {
-    filename: `${safePdfFileName(project.id)}-certificates.pdf`,
-    title: "SBTS Unified Certificate Package",
+    filename: `${safePdfFileName(project.id)}-blind-register.pdf`,
+    title: "SBTS Project Blind Register",
     subtitle: `${project.id} · ${project.name} · Generated ${generatedAt}`,
     summaryHead: [["Metric", "Planned", "Registered", "High", "Critical", "Inspection Ready", "Progress"]],
     summaryBody: [["Project summary", metrics.plannedBlinds, metrics.registeredBlinds, metrics.highPriorityBlinds, metrics.criticalBlinds, metrics.inspectionReadyBlinds, `${project.progress}%`]],
@@ -84,27 +70,5 @@ export function buildCertificatePdfTableSpec(project: PdfExportProject, blinds: 
       blind.notes || "",
     ]),
     footerText: `Area: ${project.areaCode} · ${project.areaName}`,
-  };
-}
-
-export function buildTagsPdfSpec(project: PdfExportProject, blinds: PdfExportBlind[], generatedAt = new Date().toLocaleString()): TagsPdfSpec {
-  return {
-    filename: `${safePdfFileName(project.id)}-blind-tags.pdf`,
-    emptyMessage: "No blind tags available.",
-    pages: blinds.map((blind) => ({
-      priority: blind.priority,
-      tag: blind.tag,
-      rows: [
-        ["Project", project.id],
-        ["Equipment", blind.equipment || "N/A"],
-        ["Type / Size", `${blind.type} · ${blind.size}${blind.rate ? ` · Rate ${blind.rate}` : ""}`],
-        ["Phase", blind.phase],
-        ["Phase Owner", blind.owner],
-        ["Isolation", blind.isolationPoint || "N/A"],
-        ["Location", blind.location || "N/A"],
-      ],
-      qrLabel: blind.tag,
-      footerText: `${project.areaCode} · Generated ${generatedAt}`,
-    })),
   };
 }

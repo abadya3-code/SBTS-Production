@@ -29,6 +29,8 @@ import { featureTogglesRouter } from "./featureToggles";
 import { auditLogsRouter } from "./auditLogs";
 import { workflowRuntimeRouter } from "./workflowRuntime";
 import { certificatesRouter } from "./certificates";
+import { blindQrRouter } from "./blindQr";
+import { tagPrintingRouter } from "./tagPrinting";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts
@@ -51,6 +53,8 @@ export const appRouter = router({
   auditLogs: auditLogsRouter,
   workflowRuntime: workflowRuntimeRouter,
   certificates: certificatesRouter,
+  blindQr: blindQrRouter,
+  tagPrinting: tagPrintingRouter,
 });
 
 export type AppRouter = typeof appRouter;

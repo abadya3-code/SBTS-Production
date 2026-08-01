@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
+import QRCode from "qrcode";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -33,6 +35,19 @@ export default function CertificateVerification() {
     { token },
     { enabled: token.length >= 20, retry: false },
   );
+  const [verificationQr, setVerificationQr] = useState("");
+
+  useEffect(() => {
+    if (!query.data || typeof window === "undefined") return;
+    const verificationUrl = `${window.location.origin}/certificate/verify/${encodeURIComponent(token)}`;
+    QRCode.toDataURL(verificationUrl, {
+      width: 180,
+      margin: 1,
+      errorCorrectionLevel: "M",
+    })
+      .then(setVerificationQr)
+      .catch(() => setVerificationQr(""));
+  }, [query.data, token]);
 
   if (query.isPending) {
     return <PublicFrame><div className="py-24 text-center text-sm text-slate-500">Verifying controlled certificate…</div></PublicFrame>;
@@ -46,7 +61,16 @@ export default function CertificateVerification() {
   const snapshot = data.publicSnapshot;
   const valid = data.hashValid && data.status === "issued";
   return <PublicFrame>
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="certificate-print-page mx-auto max-w-6xl space-y-5">
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 8mm; }
+          html, body { background: #fff !important; }
+          .certificate-print-page { max-width: none !important; zoom: 0.72; }
+          .certificate-print-page > * { break-inside: avoid; }
+          .certificate-print-page .shadow-sm { box-shadow: none !important; }
+        }
+      `}</style>
       <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-start md:justify-between">
         <div className="flex gap-4">
           <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${valid ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
@@ -62,7 +86,21 @@ export default function CertificateVerification() {
             </div>
           </div>
         </div>
-        <Button variant="outline" className="gap-2 print:hidden" onClick={() => window.print()}><Printer className="h-4 w-4" /> Print verification</Button>
+        <div className="flex items-center gap-3">
+          {verificationQr && (
+            <div className="rounded-xl border border-slate-200 bg-white p-1.5 text-center">
+              <img
+                src={verificationQr}
+                alt={`Certificate verification QR for ${data.certificateNumber}`}
+                className="h-20 w-20"
+              />
+              <p className="mt-1 text-[8px] font-bold uppercase tracking-wide text-slate-500">
+                Verify
+              </p>
+            </div>
+          )}
+          <Button variant="outline" className="gap-2 print:hidden" onClick={() => window.print()}><Printer className="h-4 w-4" /> Print / Save PDF</Button>
+        </div>
       </div>
 
       {data.status === "revoked" && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"><strong>Revoked certificate:</strong> {data.revocationReason || "No public reason provided."}</div>}

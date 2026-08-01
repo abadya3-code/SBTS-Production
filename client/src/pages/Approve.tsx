@@ -8,7 +8,15 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle, XCircle, RefreshCw, LogOut, Shield, Mail } from "lucide-react";
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  LogOut,
+  Shield,
+  Mail,
+} from "lucide-react";
 
 export default function Approve() {
   const { user, loading, logout } = useAuth();
@@ -57,7 +65,9 @@ export default function Approve() {
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <RefreshCw className="h-8 w-8 animate-spin text-cyan-400" />
-          <p className="text-slate-400 text-sm tracking-widest uppercase">جاري التحقق...</p>
+          <p className="text-slate-400 text-sm tracking-widest uppercase">
+            Checking status...
+          </p>
         </div>
       </div>
     );
@@ -66,7 +76,10 @@ export default function Approve() {
   const isRejected = userStatus === "rejected";
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6" dir="rtl">
+    <div
+      className="min-h-screen bg-slate-950 flex items-center justify-center p-6"
+      dir="ltr"
+    >
       {/* Background grid */}
       <div
         className="fixed inset-0 opacity-[0.03] pointer-events-none"
@@ -87,8 +100,12 @@ export default function Approve() {
               <Shield className="h-6 w-6 text-cyan-400" />
             </div>
           </div>
-          <div className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400 mb-1">SBTS Professional</div>
-          <div className="text-xs text-slate-600">Smart Blind Tracking System</div>
+          <div className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-400 mb-1">
+            SBTS Professional
+          </div>
+          <div className="text-xs text-slate-600">
+            Smart Blind Tracking System
+          </div>
         </div>
 
         {/* Status Card */}
@@ -100,9 +117,12 @@ export default function Approve() {
                 <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
                   <XCircle className="h-8 w-8 text-red-400" />
                 </div>
-                <h2 className="text-xl font-black text-white mb-2">تم رفض الطلب</h2>
+                <h2 className="text-xl font-black text-white mb-2">
+                  Registration request rejected
+                </h2>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  للأسف، تم رفض طلب تسجيلك في النظام. يرجى التواصل مع مسؤول النظام للاستفسار عن السبب.
+                  Your registration request was not approved. Contact the System
+                  Administrator for more information.
                 </p>
               </div>
 
@@ -110,9 +130,12 @@ export default function Approve() {
                 <div className="flex items-start gap-3">
                   <Mail className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-xs font-semibold text-slate-300 mb-1">للتواصل مع الإدارة</div>
+                    <div className="text-xs font-semibold text-slate-300 mb-1">
+                      Administrator support
+                    </div>
                     <div className="text-xs text-slate-500">
-                      يرجى التواصل مع مسؤول النظام لمعرفة أسباب الرفض وإمكانية إعادة التقديم.
+                      Contact the System Administrator to review the decision
+                      and whether a new request can be submitted.
                     </div>
                   </div>
                 </div>
@@ -128,9 +151,12 @@ export default function Approve() {
                     <Clock className="h-8 w-8 text-amber-400" />
                   </div>
                 </div>
-                <h2 className="text-xl font-black text-white mb-2">طلبك قيد المراجعة</h2>
+                <h2 className="text-xl font-black text-white mb-2">
+                  Your request is under review
+                </h2>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  تم استلام طلب تسجيلك بنجاح وهو الآن في انتظار مراجعة وموافقة مسؤول النظام.
+                  Your registration request was received and is awaiting System
+                  Administrator review.
                 </p>
               </div>
 
@@ -146,17 +172,22 @@ export default function Approve() {
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-300 font-bold text-sm">
-                        {(currentUser as any).name?.charAt(0)?.toUpperCase() ?? "?"}
+                        {(currentUser as any).name?.charAt(0)?.toUpperCase() ??
+                          "?"}
                       </div>
                     )}
                     <div>
-                      <div className="text-sm font-semibold text-white">{(currentUser as any).name ?? "مستخدم جديد"}</div>
-                      <div className="text-xs text-slate-500">{(currentUser as any).email ?? ""}</div>
+                      <div className="text-sm font-semibold text-white">
+                        {(currentUser as any).name ?? "New user"}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {(currentUser as any).email ?? ""}
+                      </div>
                     </div>
-                    <div className="mr-auto">
+                    <div className="ml-auto">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-xs font-semibold text-amber-400">
                         <Clock className="h-3 w-3" />
-                        قيد المراجعة
+                        Under review
                       </span>
                     </div>
                   </div>
@@ -166,17 +197,35 @@ export default function Approve() {
               {/* Steps */}
               <div className="space-y-3 mb-6">
                 {[
-                  { done: true, label: "إنشاء الحساب وإرسال الطلب", desc: "تم بنجاح" },
-                  { done: true, label: "إكمال بيانات التسجيل", desc: "تم بنجاح" },
-                  { done: false, label: "مراجعة الطلب من قِبل المسؤول", desc: "قيد الانتظار" },
-                  { done: false, label: "الوصول الكامل للنظام", desc: "بعد الموافقة" },
+                  {
+                    done: true,
+                    label: "Account request submitted",
+                    desc: "Complete",
+                  },
+                  {
+                    done: true,
+                    label: "Registration details completed",
+                    desc: "Complete",
+                  },
+                  {
+                    done: false,
+                    label: "Administrator review",
+                    desc: "Pending",
+                  },
+                  {
+                    done: false,
+                    label: "Full system access",
+                    desc: "After approval",
+                  },
                 ].map(({ done, label, desc }) => (
                   <div key={label} className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      done
-                        ? "bg-emerald-500/20 border border-emerald-500/40"
-                        : "bg-slate-800 border border-slate-700"
-                    }`}>
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        done
+                          ? "bg-emerald-500/20 border border-emerald-500/40"
+                          : "bg-slate-800 border border-slate-700"
+                      }`}
+                    >
                       {done ? (
                         <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
                       ) : (
@@ -184,9 +233,17 @@ export default function Approve() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className={`text-xs font-medium ${done ? "text-slate-300" : "text-slate-500"}`}>{label}</div>
+                      <div
+                        className={`text-xs font-medium ${done ? "text-slate-300" : "text-slate-500"}`}
+                      >
+                        {label}
+                      </div>
                     </div>
-                    <div className={`text-xs ${done ? "text-emerald-400" : "text-slate-600"}`}>{desc}</div>
+                    <div
+                      className={`text-xs ${done ? "text-emerald-400" : "text-slate-600"}`}
+                    >
+                      {desc}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -194,7 +251,8 @@ export default function Approve() {
               {/* Info notice */}
               <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl p-3 mb-6">
                 <p className="text-xs text-slate-500 text-center leading-relaxed">
-                  سيتم إشعارك عند الموافقة على طلبك. يمكنك الضغط على "تحديث الحالة" للتحقق من أي تغييرات.
+                  You will be notified after review. Select Refresh status to
+                  check for an update.
                 </p>
               </div>
             </>
@@ -209,8 +267,10 @@ export default function Approve() {
                 className="flex-1 h-11 border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-white rounded-xl"
                 disabled={meQuery.isFetching}
               >
-                <RefreshCw className={`h-4 w-4 ml-2 ${meQuery.isFetching ? "animate-spin" : ""}`} />
-                تحديث الحالة
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${meQuery.isFetching ? "animate-spin" : ""}`}
+                />
+                Refresh status
               </Button>
             )}
             <Button
@@ -218,8 +278,8 @@ export default function Approve() {
               variant="outline"
               className={`${isRejected ? "flex-1" : ""} h-11 border-slate-700 bg-slate-800/50 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/40 rounded-xl`}
             >
-              <LogOut className="h-4 w-4 ml-2" />
-              تسجيل الخروج
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign out
             </Button>
           </div>
         </div>
@@ -227,7 +287,8 @@ export default function Approve() {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-700">
-            SBTS Professional &copy; {new Date().getFullYear()} — جميع الحقوق محفوظة
+            SBTS Professional &copy; {new Date().getFullYear()} — All rights
+            reserved
           </p>
         </div>
       </div>

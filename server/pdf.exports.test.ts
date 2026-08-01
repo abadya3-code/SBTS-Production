@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCertificatePdfTableSpec, buildTagsPdfSpec } from "@shared/pdfExports";
+import { buildProjectRegisterPdfSpec } from "@shared/pdfExports";
 
 const project = {
   id: "PRJ-1027",
@@ -38,26 +38,15 @@ const blinds = [
 ];
 
 describe("PDF export specs", () => {
-  it("builds a certificate PDF contract with PDF filename, rate, area, and Slip Blind gate text", () => {
-    const spec = buildCertificatePdfTableSpec(project, blinds, metrics, "2026-05-06 10:00");
+  it("builds a project register PDF contract with rate, area, and Slip Blind gate text", () => {
+    const spec = buildProjectRegisterPdfSpec(project, blinds, metrics, "2026-05-06 10:00");
 
-    expect(spec.filename).toBe("prj-1027-certificates.pdf");
-    expect(spec.title).toBe("SBTS Unified Certificate Package");
+    expect(spec.filename).toBe("prj-1027-blind-register.pdf");
+    expect(spec.title).toBe("SBTS Project Blind Register");
     expect(spec.summaryBody[0]).toContain("62%");
     expect(spec.footerText).toBe("Area: AREA-04 · Utilities North");
     expect(spec.blindRows[0][1]).toContain("BLD-1042");
     expect(spec.blindRows[0][2]).toContain("Rate 150#");
     expect(spec.blindRows[0][7]).toBe("Foreman pending / Merged");
-  });
-
-  it("builds a printable tag PDF contract with one PDF page per blind", () => {
-    const spec = buildTagsPdfSpec(project, blinds, "2026-05-06 10:00");
-
-    expect(spec.filename).toBe("prj-1027-blind-tags.pdf");
-    expect(spec.pages).toHaveLength(1);
-    expect(spec.pages[0].tag).toBe("BLD-1042");
-    expect(spec.pages[0].rows).toContainEqual(["Type / Size", "Slip Blind · 8in · Rate 150#"]);
-    expect(spec.pages[0].rows).toContainEqual(["Location", "Pipe rack L2"]);
-    expect(spec.pages[0].footerText).toBe("AREA-04 · Generated 2026-05-06 10:00");
   });
 });

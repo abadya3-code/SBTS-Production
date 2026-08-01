@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { escapePrintHtml, openSanitizedPrintWindow } from "@/lib/printSecurity";
 
 type BlindPriority = "Low" | "Normal" | "High" | "Critical";
 type BlindType = "Slip Blind" | "Drop Spool" | "Isolation";
@@ -241,13 +242,13 @@ export function BlindsRegistry({
                 .map(
                   (blind) => `
                 <tr>
-                  <td class="tag">${blind.tag}</td>
-                  <td>${blind.type}</td>
-                  <td>${blind.size}</td>
-                  <td class="phase">${blind.phase}</td>
-                  <td class="priority">${blind.priority}</td>
-                  <td>${blind.owner}</td>
-                  <td>${blind.equipment || "-"}</td>
+                  <td class="tag">${escapePrintHtml(blind.tag)}</td>
+                  <td>${escapePrintHtml(blind.type)}</td>
+                  <td>${escapePrintHtml(blind.size)}</td>
+                  <td class="phase">${escapePrintHtml(blind.phase)}</td>
+                  <td class="priority">${escapePrintHtml(blind.priority)}</td>
+                  <td>${escapePrintHtml(blind.owner)}</td>
+                  <td>${escapePrintHtml(blind.equipment || "-")}</td>
                 </tr>
               `
                 )
@@ -258,15 +259,9 @@ export function BlindsRegistry({
       </html>
     `;
 
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      console.error("Failed to open print window");
-      return;
-    }
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 300);
+    openSanitizedPrintWindow(htmlContent, {
+      onBlocked: () => console.error("Failed to open print window"),
+    });
   };
 
   return (
@@ -368,9 +363,11 @@ export function BlindsRegistry({
                         <DropdownMenuItem onClick={() => onEdit?.(blind.id)} className="cursor-pointer">
                           <Edit2 className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDelete?.(blind.id)} className="cursor-pointer text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {onDelete && (
+                          <DropdownMenuItem onClick={() => onDelete(blind.id)} className="cursor-pointer text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -471,13 +468,15 @@ export function BlindsRegistry({
                               <Edit2 className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onDelete?.(blind.id)}
-                              className="cursor-pointer text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
+                            {onDelete && (
+                              <DropdownMenuItem
+                                onClick={() => onDelete(blind.id)}
+                                className="cursor-pointer text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

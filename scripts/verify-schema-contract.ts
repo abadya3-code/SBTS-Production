@@ -113,6 +113,43 @@ const requiredColumns: Record<string, string[]> = {
     "recordVersionAfter",
     "createdAt",
   ],
+  blind_qr_tokens: [
+    "id",
+    "projectId",
+    "blindTag",
+    "verificationToken",
+    "version",
+    "blindQrTokenStatus",
+    "issuedByOpenId",
+    "issuedAt",
+    "previousTokenId",
+    "revokedByOpenId",
+    "revokedAt",
+    "revocationReason",
+    "lastScannedAt",
+    "scanCount",
+    "createdAt",
+    "updatedAt",
+  ],
+  default_tag_settings: [
+    "tagWidth",
+    "tagHeight",
+    "layoutJson",
+    "templateSlotsJson",
+  ],
+  notifications: [
+    "notificationType",
+    "notificationPriority",
+    "isRead",
+    "readAt",
+    "isArchived",
+    "archivedAt",
+  ],
+  notification_preferences: [
+    "qrTokenChanged",
+    "certificateStatusChanged",
+    "tagPrintRequested",
+  ],
 };
 
 async function main() {
@@ -153,11 +190,13 @@ async function main() {
     const requiredMigrations = [
       "0018_sprint6_schema_alignment.sql",
       "0019_sprint4_foundation_stabilization.sql",
+      "0020_sprint6_qr_print_inbox_designer.sql",
     ];
+    const migrationPlaceholders = requiredMigrations.map(() => "?").join(", ");
     const [migrationRows] = await connection.query<mysql.RowDataPacket[]>(
       `SELECT migrationName
          FROM sbts_domain_migrations
-        WHERE migrationName IN (?, ?)`,
+        WHERE migrationName IN (${migrationPlaceholders})`,
       requiredMigrations
     );
     const appliedMigrations = new Set(
